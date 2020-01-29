@@ -77,24 +77,7 @@ class Scanner(private val source: String, private val reader: InputStream) {
     }
 
     fun tokenToString(t: Rune): String {
-        when {
-            t == tkName || t == tkString -> {
-                return scanningToken.s
-            }
-            t == tkInt -> {
-                return "${scanningToken.i}"
-            }
-            t == tkNumber -> {
-                return "${scanningToken.n}"
-            }
-            t < firstReserved -> {
-                return t.toString() // TODO: to printable string
-            }
-            t < tkEOS -> {
-                return "'${tokens[t - firstReserved]}'"
-            }
-        }
-        return tokens[t - firstReserved]
+        return scanningToken.toString(t)
     }
 
     fun incrementLineNumber() {
@@ -587,6 +570,10 @@ class Scanner(private val source: String, private val reader: InputStream) {
         if (scanningToken.t != t) {
             errorExpected(t)
         }
+    }
+
+    fun check(t: Char) {
+        check(t.toInt())
     }
 
     fun checkMatch(what: Rune, who: Rune, where: Int) {

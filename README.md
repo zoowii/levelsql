@@ -16,7 +16,7 @@ simple relational sql database
 # TODO
 * performance test
 * mysql protocol
-* sql parser(scanner done, parser todo)
+* sql parser(scanner done, parser doing)
 * logic planner/physical planner/optimizer
 * skiplist based index in memory
 * LSM based store and index

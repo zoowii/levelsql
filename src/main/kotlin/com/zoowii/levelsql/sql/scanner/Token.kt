@@ -8,7 +8,7 @@ val maxInt: Long = Long.MAX_VALUE
 val maxUint8 = 1.shl(8) - 1
 
 object TokenTypes {
-    val tkExplain: Rune = 0 + firstReserved
+    val tkDescribe: Rune = 0 + firstReserved
     val tkShow: Rune = 1 + firstReserved
     val tkCreate: Rune = 2 + firstReserved
     val tkDrop: Rune = 3 + firstReserved
@@ -56,7 +56,7 @@ object TokenTypes {
     val reservedCount: Rune = tkEOS - firstReserved + 1 // 保留关键字的数量
 }
 
-val tokens = arrayOf("explain", "show", "create", "drop", "database", "table", "index",
+val tokens = arrayOf("describe", "show", "create", "drop", "database", "table", "index",
         "select", "insert", "update", "delete", "alter", "and", "or", "where",
         "order", "by", "asc", "desc", "from", "join", "union", "left", "right", "inner", "outer", "full",
         "into", "default", "primary", "key", "auto_increment", "values",
@@ -68,4 +68,28 @@ val tokens = arrayOf("explain", "show", "create", "drop", "database", "table", "
 // i: 当前的整数
 // n: 当前的浮点数
 // s: 当前的字符串或者符号字面量
-class Token(var t: Rune, var i: Long?=null, var n: BigDecimal?=null, var s: String="")
+class Token(var t: Rune, var i: Long?=null, var n: BigDecimal?=null, var s: String="") {
+    override fun toString(): String {
+        return toString(t)
+    }
+    fun toString(t: Rune): String {
+        when {
+            t == TokenTypes.tkName || t == TokenTypes.tkString -> {
+                return s
+            }
+            t == TokenTypes.tkInt -> {
+                return "${i}"
+            }
+            t == TokenTypes.tkNumber -> {
+                return "${n}"
+            }
+            t < firstReserved -> {
+                return t.toChar().toString()
+            }
+            t < TokenTypes.tkEOS -> {
+                return "'${tokens[t - firstReserved]}'"
+            }
+        }
+        return tokens[t - firstReserved]
+    }
+}
