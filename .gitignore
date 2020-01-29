@@ -1,0 +1,16 @@
+.idea
+*.iml
+.vscode
+.gradle
+build
+logs
+out
+dist
+target
+*~
+*.log
+/test_db
+/test_docs
+/test_table_docs
+/table_tests
+/table_tests_local
