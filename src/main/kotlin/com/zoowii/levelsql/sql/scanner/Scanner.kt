@@ -1,17 +1,16 @@
-package com.zoowii.levelsql.engine.sql.scanner
+package com.zoowii.levelsql.sql.scanner
 
-import com.google.common.base.Strings
 import com.zoowii.levelsql.engine.exceptions.SqlParseException
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.reservedCount
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkEOS
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkGL
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkGe
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkInt
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkLe
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkName
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkNe
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkNumber
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkString
+import com.zoowii.levelsql.sql.scanner.TokenTypes.reservedCount
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkEOS
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkGL
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkGe
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkInt
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkLe
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkName
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkNe
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkNumber
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkString
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.lang.Character.isDigit
@@ -41,7 +40,7 @@ class Scanner(private val source: String, private val reader: InputStream) {
     private var scanningToken = Token(0)
     private val buffer = ByteArrayOutputStream()
     private var current: Rune = 0
-    private var lineNumber: Int = 0
+    var lineNumber: Int = 0
     private var lastLine: Int = 0
     private var lookAheadToken = Token(tkEOS)
 
@@ -113,6 +112,10 @@ class Scanner(private val source: String, private val reader: InputStream) {
 
     fun currentToken(): Token {
         return scanningToken
+    }
+
+    fun eos(): Boolean {
+        return scanningToken.t == tkEOS
     }
 
     fun advance() {

@@ -1,4 +1,4 @@
-package com.zoowii.levelsql.engine.sql.scanner
+package com.zoowii.levelsql.sql.scanner
 
 import java.math.BigDecimal
 

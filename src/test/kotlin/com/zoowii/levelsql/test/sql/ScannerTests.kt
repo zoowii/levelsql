@@ -1,11 +1,11 @@
 package com.zoowii.levelsql.test.sql
 
-import com.zoowii.levelsql.engine.sql.scanner.Scanner
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkFrom
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkInsert
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkInto
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkName
-import com.zoowii.levelsql.engine.sql.scanner.TokenTypes.tkSelect
+import com.zoowii.levelsql.sql.scanner.Scanner
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkFrom
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkInsert
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkInto
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkName
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkSelect
 import org.junit.Test
 import java.io.ByteArrayInputStream
 
