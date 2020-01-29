@@ -184,6 +184,7 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
         }
     }
 
+    @Throws(IndexException::class)
     fun deleteByKeyAndRowId(key: ByteArray, rowId: RowId) {
         log.debug("deleteByKeyAndRowId ${Int32FromBytes(key).first} ${rowId.longValue()}")
         // 在B+树中根据key删除某条记录
@@ -193,7 +194,9 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
         // 4. 如果内部节点的key数量 >= Math.ceil(degree-1)/2-1,操作结束
         // 5. 如果兄弟节点的key数量>=Math.ceil(degree-1)/2-1, 父节点的key下移到当前节点，兄弟节点多余的key上浮1个到父节点，删除结束，否则继续
         // 6. 把当前节点，兄弟节点，和父节点下移的key合并成新节点。将当前节点指针设置为父节点，重复步骤4直到没有了父节点
-        val usingMetanode = metaNode ?: throw IndexException("meta node not set yet")
+        if(metaNode==null) {
+            throw IndexException("meta node not set yet")
+        }
         val nodeAndPos = findLeafNodeByKeyAndRowId(key, rowId) ?: return
         val foundLeafNode = nodeAndPos.node // 找到key所在叶子节点
         log.debug("found leaf node {}", foundLeafNode.nodeId)
@@ -287,6 +290,7 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
         propagateNodeKeyChange(parentNode, oldNodeLeftNodeKey)
     }
 
+    @Throws(IndexException::class)
     fun replaceKeyValue(value: IndexLeafNodeValue) {
         // 在B+书中更新记录, value中包含了row id和key
         // 根据rowId查找并替换节点
@@ -296,6 +300,7 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
         saveIndexNode(nodeAndPos.node)
     }
 
+    @Throws(IndexException::class)
     fun addKeyValue(value: IndexLeafNodeValue) {
         // 在B+树中插入新记录，value包含row id要求每次都不一样,一样的不重复插入
         val key = value.key
@@ -305,19 +310,14 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
         // 3. 到内部节点后，如果这个内部节点没满，操作结束，如果这个内部节点满了，拆分这个内部节点成左右两个内部节点，移动原来内部节点的中间key到父节点，两个新节点都作为原来父节点的子节点，移动指针到上级父节点继续操作
         // 4. 如果指针到了根节点或者没有上一级节点了，操作结束
         // 过程中涉及元信息变化的比如节点数增加的，需要修改meta node
-        val usingMetanode = metaNode
-        if (usingMetanode == null) {
-            throw IndexException("meta node not set yet")
-        }
+        val usingMetanode = metaNode ?: throw IndexException("meta node not set yet")
         var curNodeId = usingMetanode.rootNodePosition.offset
         var curNode: IndexNode
         val (nodeAndPos, isNewNode) = findIndex(key, true)
         if (nodeAndPos != null) {
             curNodeId = nodeAndPos.node.nodeId
         }
-        val nodeOption = getIndexNode(curNodeId)
-        if (nodeOption == null)
-            throw IndexException("node not found")
+        val nodeOption = getIndexNode(curNodeId) ?: throw IndexException("node not found")
         curNode = nodeOption
         if (!curNode.leaf)
             throw IndexException("only can insert into leaf node in B+ tree")
@@ -428,36 +428,36 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
             // curNode原地作为新的左节点，所以接下来需要新建一个右节点
             curNode.subNodes = leftSubNodes
             curNode.nodeKeys = leftNodeKeys
-            val rightNodeId = metaNode!!.nextIndexNodeId()
+            val newRightNodeId = metaNode!!.nextIndexNodeId()
             metaNode!!.nodesCount += 1
-            val rightNode = IndexNode(rightNodeId, oldParentNodeId, curNodeId, curNode.rightNodeId, nodeBytesSize, nodeSubMaxCount, false)
-            rightNode.subNodes = rightSubNodes
-            rightNode.nodeKeys = rightNodeKeys
-            curNode.rightNodeId = rightNodeId
+            val newRightNode = IndexNode(newRightNodeId, oldParentNodeId, curNodeId, curNode.rightNodeId, nodeBytesSize, nodeSubMaxCount, false)
+            newRightNode.subNodes = rightSubNodes
+            newRightNode.nodeKeys = rightNodeKeys
+            curNode.rightNodeId = newRightNodeId
             // rightSubNodes的parentNodeId要修改
-            for (subNode in rightNode.subNodes) {
+            for (subNode in newRightNode.subNodes) {
                 val node = getIndexNode(subNode.offset)
                 if (node == null) {
                     throw IndexException("can't find inner node ${subNode.offset}")
                 }
-                node.parentNodeId = rightNodeId
+                node.parentNodeId = newRightNodeId
                 saveIndexNode(node)
             }
             saveIndexNode(curNode)
-            saveIndexNode(rightNode)
+            saveIndexNode(newRightNode)
             val oldParentNode = getIndexNode(oldParentNodeId)
             if (oldParentNode == null) {
                 // 如果上级不存在父节点，就新建一个父节点用来存储上溢的middleNodeKey
                 val newRootNodeId = usingMetanode.nextIndexNodeId()
                 usingMetanode.nodesCount += 1
                 val newRootNode = IndexNode(newRootNodeId, -1, null, null, nodeBytesSize, nodeSubMaxCount, false)
-                newRootNode.subNodes = listOf(NodePosition(curNode.nodeId), NodePosition(rightNode.nodeId))
+                newRootNode.subNodes = listOf(NodePosition(curNode.nodeId), NodePosition(newRightNode.nodeId))
                 newRootNode.nodeKeys = listOf(middleNodeKey)
                 saveIndexNode(newRootNode)
                 curNode.parentNodeId = newRootNodeId
                 saveIndexNode(curNode)
-                rightNode.parentNodeId = newRootNodeId
-                saveIndexNode(rightNode)
+                newRightNode.parentNodeId = newRootNodeId
+                saveIndexNode(newRightNode)
                 usingMetanode.rootNodePosition.offset = newRootNodeId
                 saveMetaInfo()
                 break
@@ -473,9 +473,9 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
                 oldParentNode.nodeKeys = oldParentNode.nodeKeys + listOf(middleNodeKey)
             }
             if (indexInParent + 1 < oldParentNode.subNodes.size) {
-                oldParentNode.subNodes = oldParentNode.subNodes.subList(0, indexInParent + 1) + NodePosition(rightNode.nodeId) + oldParentNode.subNodes.subList(indexInParent + 1, oldParentNode.subNodes.size)
+                oldParentNode.subNodes = oldParentNode.subNodes.subList(0, indexInParent + 1) + NodePosition(newRightNode.nodeId) + oldParentNode.subNodes.subList(indexInParent + 1, oldParentNode.subNodes.size)
             } else {
-                oldParentNode.subNodes = oldParentNode.subNodes + listOf(NodePosition(rightNode.nodeId))
+                oldParentNode.subNodes = oldParentNode.subNodes + listOf(NodePosition(newRightNode.nodeId))
             }
             saveIndexNode(oldParentNode)
             curNodeId = oldParentNodeId
@@ -519,7 +519,6 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
             if (minIndex > maxIndex)
                 return null
             val minKey = keyFetcher(list[minIndex])
-            val maxKey = keyFetcher(list[maxIndex])
             if (cond.match(minKey)) {
                 matchedIndexes += minIndex
                 return minIndex
@@ -661,7 +660,6 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
             val subTreeIdx = bplusTreeSearchByCondition(curNode.nodeKeys, condition)
             curNodeId = curNode.subNodes[subTreeIdx].offset
         }
-        return null
     }
 
     // @return: (indexNodeValue, isNewPosition)
@@ -699,7 +697,6 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
             else
                 curNodeId = curNode.subNodes[subSearchResult.first + 1].offset
         }
-        return Pair(null, true)
     }
 
 }

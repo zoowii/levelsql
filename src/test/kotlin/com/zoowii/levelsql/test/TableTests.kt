@@ -20,10 +20,10 @@ class TableTests {
 
     @Before
     fun iniDb() {
-        val dbFile = File("./table_tests")
-        if (dbFile.exists())
-            dbFile.deleteRecursively()
-        val store = LevelDbStore.openStore(dbFile)
+//        val dbFile = File("./table_tests")
+//        if (dbFile.exists())
+//            dbFile.deleteRecursively()
+//        val store = LevelDbStore.openStore(dbFile)
 
         // LocalFileStore需要更充分的测试
         val localDbFile = File("./table_tests_local")

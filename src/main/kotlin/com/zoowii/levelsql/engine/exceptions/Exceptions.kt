@@ -5,3 +5,5 @@ class SerializeException(msg: String) : Exception(msg)
 class IndexException(msg: String): Exception(msg)
 
 class DbException(msg: String): Exception(msg)
+
+class SqlParseException(msg: String) : Exception(msg)
