@@ -1,5 +1,6 @@
 package com.zoowii.levelsql.engine
 
+import com.zoowii.levelsql.TableColumnDefinition
 import com.zoowii.levelsql.engine.exceptions.DbException
 import com.zoowii.levelsql.engine.exceptions.IndexException
 import com.zoowii.levelsql.engine.index.IndexLeafNodeValue
@@ -9,18 +10,24 @@ import com.zoowii.levelsql.engine.store.Int32FromBytes
 import com.zoowii.levelsql.engine.store.RowId
 import com.zoowii.levelsql.engine.store.StringFromBytes
 import com.zoowii.levelsql.engine.store.toBytes
+import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import com.zoowii.levelsql.engine.utils.KeyCondition
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicLong
 
-class Table(val db: Database, val tblName: String, val nodeBytesSize: Int=1024*16, val treeDegree: Int = 100) {
+class Table(val db: Database, val tblName: String, val columns: List<TableColumnDefinition>,
+            val nodeBytesSize: Int=1024*16, val treeDegree: Int = 100) {
 
 
     fun metaToBytes(): ByteArray {
         val out = ByteArrayOutputStream()
         out.write(db.dbName.toBytes())
         out.write(tblName.toBytes())
+        out.write(columns.size.toBytes())
+        for(c in columns) {
+            out.write(c.toBytes())
+        }
         out.write(nodeBytesSize.toBytes())
         out.write(treeDegree.toBytes())
         return out.toByteArray()
@@ -28,14 +35,17 @@ class Table(val db: Database, val tblName: String, val nodeBytesSize: Int=1024*1
 
     companion object {
         fun metaFromBytes(db: Database, data: ByteArray): Pair<Table, ByteArray> {
-            val (dbName, remaining1) = StringFromBytes(data)
-            val (tblName, remaining2) = StringFromBytes(remaining1)
-            val (nodeBytesSize, remaining3) = Int32FromBytes(remaining2)
-            val (treeDegree, remaining4) = Int32FromBytes(remaining3)
+            val stream = ByteArrayStream(data)
+            val dbName = stream.unpackString()
+            val tblName = stream.unpackString()
+            val columnsCount = stream.unpackInt32()
+            val columns = (0 until columnsCount).map { TableColumnDefinition.fromBytes(stream) }.toList()
+            val nodeBytesSize = stream.unpackInt32()
+            val treeDegree = stream.unpackInt32()
             if(dbName!=db.dbName) {
                 throw IOException("conflict db name $dbName and ${db.dbName} when load table")
             }
-            return Pair(Table(db, tblName, nodeBytesSize, treeDegree), remaining4)
+            return Pair(Table(db, tblName, columns, nodeBytesSize, treeDegree), stream.remaining)
         }
     }
 
@@ -106,5 +116,9 @@ class Table(val db: Database, val tblName: String, val nodeBytesSize: Int=1024*1
 
     fun toFullTreeString(): String {
         return tree.toFullTreeString()
+    }
+
+    override fun toString(): String {
+        return "table $tblName (${columns.joinToString(", ") })"
     }
 }

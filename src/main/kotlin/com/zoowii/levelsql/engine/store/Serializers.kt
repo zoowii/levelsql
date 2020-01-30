@@ -6,7 +6,6 @@ import java.io.ByteArrayOutputStream
 import java.util.*
 import kotlin.experimental.and
 
-
 interface StoreSerializable<T> {
     fun toBytes(): ByteArray
     // throws Exception

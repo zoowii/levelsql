@@ -1,7 +1,9 @@
 package com.zoowii.levelsql.engine
 
+import com.zoowii.levelsql.TableColumnDefinition
 import com.zoowii.levelsql.engine.exceptions.DbException
 import com.zoowii.levelsql.engine.store.*
+import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.sql.SQLException
@@ -37,33 +39,40 @@ class Database(val dbName: String, val store: IStore) {
 
     companion object {
         fun metaFromBytes(db: Database, data: ByteArray): Pair<Database, ByteArray> {
-            val (dbName, remaining1) = StringFromBytes(data)
+            val stream = ByteArrayStream(data)
+            val dbName = stream.unpackString()
             if (dbName != db.dbName) {
                 throw IOException("conflict db name $dbName and ${db.dbName} when load database")
             }
-            val (tablesCount, remaining2) = Int32FromBytes(remaining1)
-            var remaining = remaining2
+            val tablesCount = stream.unpackInt32()
             val dbTables = mutableListOf<Table>()
             for (i in 0 until tablesCount) {
-                val (table, tmpRemaining) = Table.metaFromBytes(db, remaining)
-                remaining = tmpRemaining
+                val (table, tmpRemaining) = Table.metaFromBytes(db, stream.remaining)
+                stream.remaining = tmpRemaining
                 dbTables += table
             }
             db.tables = dbTables
-            return Pair(db, remaining)
+            return Pair(db, stream.remaining)
         }
     }
 
-    fun createTable(tableName: String): Table {
+    fun createTable(tableName: String, columns: List<TableColumnDefinition>): Table {
         if (tables.any { it.tblName == tableName }) {
             throw DbException("table ${tableName} existed before")
         }
-        val tbl = Table(this, tableName)
+        if(columns.isEmpty()) {
+            throw DbException("table can't be empty")
+        }
+        val tbl = Table(this, tableName, columns)
         this.tables += tbl
         return tbl
     }
 
     fun openTable(tableName: String): Table {
         return tables.firstOrNull { it.tblName == tableName } ?: throw DbException("table ${tableName} not found")
+    }
+
+    override fun toString(): String {
+        return "database $dbName:\n${tables.map { "\ttable $it" }.joinToString("\n")}"
     }
 }

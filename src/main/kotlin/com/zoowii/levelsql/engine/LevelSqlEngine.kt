@@ -2,6 +2,7 @@ package com.zoowii.levelsql.engine
 
 import com.zoowii.levelsql.engine.exceptions.DbException
 import com.zoowii.levelsql.engine.store.*
+import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import java.io.ByteArrayOutputStream
 import java.sql.SQLException
 
@@ -13,6 +14,9 @@ class LevelSqlEngine(val store: IStore) {
         val metaBytes = store.get(metaStoreKey())
                 ?: throw SQLException("load engine error")
         metaFromBytes(this, metaBytes)
+        for(db in databases) {
+            db.loadMeta()
+        }
     }
 
     fun saveMeta() {
@@ -35,16 +39,15 @@ class LevelSqlEngine(val store: IStore) {
 
     companion object {
         fun metaFromBytes(engine: LevelSqlEngine, data: ByteArray): Pair<LevelSqlEngine, ByteArray> {
-            val (dbsCount, remaining1) = Int32FromBytes(data)
-            var remaining = remaining1
+            val stream = ByteArrayStream(data)
+            val dbsCount = stream.unpackInt32()
             val dbs = mutableListOf<Database>()
             for (i in 0 until dbsCount) {
-                val (dbName, tmpRemaining) = StringFromBytes(remaining)
-                remaining = tmpRemaining
+                val dbName = stream.unpackString()
                 dbs += Database(dbName, engine.store)
             }
             engine.databases = dbs
-            return Pair(engine, remaining)
+            return Pair(engine, stream.remaining)
         }
     }
 

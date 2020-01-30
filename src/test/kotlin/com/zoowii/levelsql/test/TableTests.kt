@@ -1,5 +1,8 @@
 package com.zoowii.levelsql.test
 
+import com.zoowii.levelsql.IntColumnType
+import com.zoowii.levelsql.TableColumnDefinition
+import com.zoowii.levelsql.VarCharColumnType
 import com.zoowii.levelsql.engine.Database
 import com.zoowii.levelsql.engine.Table
 import com.zoowii.levelsql.engine.store.LevelDbStore
@@ -45,7 +48,12 @@ class TableTests {
     private val userTableName = "user"
 
     private fun openSimpleTables(): Table {
-        return Table(db!!, userTableName, 1024 * 16, 4)
+        val columns = listOf(
+                TableColumnDefinition("id", IntColumnType(), true),
+                TableColumnDefinition("name", VarCharColumnType(50), true),
+                TableColumnDefinition("age", IntColumnType(), true)
+        )
+        return Table(db!!, userTableName, columns, 1024 * 16, 4)
     }
 
     private fun writeTreeJsonToFile(treeJsonStr: String, outputPath: String) {
