@@ -41,17 +41,24 @@ object TokenTypes {
     val tkKey: Rune = 30 + firstReserved
     val tkAutoIncrement: Rune = 31 + firstReserved
     val tkValues: Rune = 32 + firstReserved
-    val tkNot: Rune = 33 + firstReserved
-    val tkNull: Rune = 34 + firstReserved
-    val tkGe: Rune = 35 + firstReserved
-    val tkLe: Rune = 36 + firstReserved
-    val tkNe: Rune = 37 + firstReserved
-    val tkGL: Rune = 38 + firstReserved // less or great than, 等价于 !=
-    val tkNumber: Rune = 39 + firstReserved
-    val tkInt: Rune = 40 + firstReserved
-    val tkName: Rune = 41 + firstReserved
-    val tkString: Rune = 42 + firstReserved
-    val tkEOS: Rune = 43 + firstReserved
+    val tkSet: Rune = 33 + firstReserved
+    val tkExplain: Rune = 34 + firstReserved
+    val tkOn: Rune = 35 + firstReserved
+    val tkAdd: Rune = 36 + firstReserved
+    val tkColumn: Rune = 37 + firstReserved
+    val tkGroup: Rune = 38 + firstReserved
+    val tkLimit: Rune = 39 + firstReserved
+    val tkNot: Rune = 40 + firstReserved
+    val tkNull: Rune = 41 + firstReserved
+    val tkGe: Rune = 42 + firstReserved
+    val tkLe: Rune = 43 + firstReserved
+    val tkNe: Rune = 44 + firstReserved
+    val tkGL: Rune = 45 + firstReserved // less or great than, 等价于 !=
+    val tkNumber: Rune = 46 + firstReserved
+    val tkInt: Rune = 47 + firstReserved
+    val tkName: Rune = 48 + firstReserved
+    val tkString: Rune = 49 + firstReserved
+    val tkEOS: Rune = 50 + firstReserved
 
     val reservedCount: Rune = tkEOS - firstReserved + 1 // 保留关键字的数量
 }
@@ -59,7 +66,8 @@ object TokenTypes {
 val tokens = arrayOf("describe", "show", "create", "drop", "database", "table", "index",
         "select", "insert", "update", "delete", "alter", "and", "or", "where",
         "order", "by", "asc", "desc", "from", "join", "union", "left", "right", "inner", "outer", "full",
-        "into", "default", "primary", "key", "auto_increment", "values",
+        "into", "default", "primary", "key", "auto_increment", "values", "set",
+        "explain", "on", "add", "column", "group", "limit",
         "not", "null",
         ">=", "<=", "!=", "<>",
         "<number>", "<int>", "<name>", "<string>", "<eof>")
