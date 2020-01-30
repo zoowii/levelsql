@@ -4,6 +4,7 @@ import com.zoowii.levelsql.engine.store.BooleanFromBytes
 import com.zoowii.levelsql.engine.store.Int32FromBytes
 import com.zoowii.levelsql.engine.store.StoreSerializable
 import com.zoowii.levelsql.engine.store.toBytes
+import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import java.io.ByteArrayOutputStream
 
 
@@ -18,35 +19,16 @@ data class IndexMetaNode(var nodesCount: Int, var nodeBytesSize: Int, var nodeSu
         return out.toByteArray()
     }
 
-    override fun fromBytes(bytes: ByteArray): Pair<IndexMetaNode, ByteArray> {
-        var remaining: ByteArray = bytes
-        run {
-            val p1 = Int32FromBytes(remaining)
-            this.nodesCount = p1.first
-            remaining = p1.second
-        }
-        run {
-            val p2 = Int32FromBytes(remaining)
-            this.nodeBytesSize = p2.first
-            remaining = p2.second
-        }
-        run {
-            val p = Int32FromBytes(remaining)
-            this.nodeSubMaxCount = p.first
-            remaining = p.second
-        }
-        run {
-            val p = BooleanFromBytes(remaining)
-            this.ascSort = p.first
-            remaining = p.second
-        }
+    override fun fromBytes(stream: ByteArrayStream): IndexMetaNode {
+        this.nodesCount = stream.unpackInt32()
+        this.nodeBytesSize = stream.unpackInt32()
+        this.nodeSubMaxCount = stream.unpackInt32()
+        this.ascSort = stream.unpackBoolean()
         run {
             val rootNode_ = NodePosition(0)
-            val p = rootNode_.fromBytes(remaining)
-            this.rootNodePosition = rootNode_
-            remaining = p.second
+            this.rootNodePosition = rootNode_.fromBytes(stream)
         }
-        return Pair(this, remaining)
+        return this
     }
 
     fun nextIndexNodeId(): Int {

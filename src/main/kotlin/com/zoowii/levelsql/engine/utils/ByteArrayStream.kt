@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.utils
 
 import com.zoowii.levelsql.engine.store.BooleanFromBytes
+import com.zoowii.levelsql.engine.store.ByteArrayFromBytes
 import com.zoowii.levelsql.engine.store.Int32FromBytes
 import com.zoowii.levelsql.engine.store.StringFromBytes
 
@@ -19,6 +20,11 @@ class ByteArrayStream(private val initData: ByteArray) {
     }
     fun unpackInt32(): Int {
         val (value, other) = Int32FromBytes(remaining)
+        remaining = other
+        return value
+    }
+    fun unpackByteArray(): ByteArray {
+        val (value, other) = ByteArrayFromBytes(remaining)
         remaining = other
         return value
     }

@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.index
 
 import com.zoowii.levelsql.engine.store.*
+import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import com.zoowii.levelsql.engine.utils.compareNodeKey
 import java.io.ByteArrayOutputStream
 
@@ -14,16 +15,16 @@ data class IndexLeafNodeValue(val rowId: RowId, val key: ByteArray, val value: B
     }
 
     companion object {
-        fun fromBytes(bytes: ByteArray): Pair<IndexLeafNodeValue, ByteArray> {
-            val (rowId, remaining1) = RowId.fromBytes(bytes)
-            val (keyBytes, remaining2) = ByteArrayFromBytes(remaining1)
-            val (valueBytes, remaining3) = ByteArrayFromBytes(remaining2)
-            return Pair(IndexLeafNodeValue(rowId, keyBytes, valueBytes), remaining3)
+        fun fromBytes(stream: ByteArrayStream): IndexLeafNodeValue {
+            val rowId = RowId.fromBytes(stream)
+            val keyBytes = stream.unpackByteArray()
+            val valueBytes = stream.unpackByteArray()
+            return IndexLeafNodeValue(rowId, keyBytes, valueBytes)
         }
     }
 
-    override fun fromBytes(bytes: ByteArray): Pair<IndexLeafNodeValue, ByteArray> {
-        return IndexLeafNodeValue.fromBytes(bytes)
+    override fun fromBytes(stream: ByteArrayStream): IndexLeafNodeValue {
+        return IndexLeafNodeValue.fromBytes(stream)
     }
 
     fun compareTo(other: IndexLeafNodeValue): Int {

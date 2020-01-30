@@ -136,7 +136,7 @@ class IndexTreeTestCase {
         val item1Key = item1.toBytes()
         val (nodeAndPos, isNew) = tree.findIndex(item1Key, false)
         assertTrue(!isNew)
-        val item1RowId = nodeAndPos!!.node.values[nodeAndPos!!.indexInNode].rowId
+        val item1RowId = nodeAndPos!!.node.values[nodeAndPos.indexInNode].rowId
         tree.deleteByKeyAndRowId(item1Key, item1RowId)
         assertTrue(tree.validate(), "tree invalid after deleted key $item1")
         val treeJson = tree.toFullTreeString()

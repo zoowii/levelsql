@@ -34,8 +34,7 @@ class Table(val db: Database, val tblName: String, val columns: List<TableColumn
     }
 
     companion object {
-        fun metaFromBytes(db: Database, data: ByteArray): Pair<Table, ByteArray> {
-            val stream = ByteArrayStream(data)
+        fun metaFromBytes(db: Database, stream: ByteArrayStream): Table {
             val dbName = stream.unpackString()
             val tblName = stream.unpackString()
             val columnsCount = stream.unpackInt32()
@@ -45,7 +44,7 @@ class Table(val db: Database, val tblName: String, val columns: List<TableColumn
             if(dbName!=db.dbName) {
                 throw IOException("conflict db name $dbName and ${db.dbName} when load table")
             }
-            return Pair(Table(db, tblName, columns, nodeBytesSize, treeDegree), stream.remaining)
+            return Table(db, tblName, columns, nodeBytesSize, treeDegree)
         }
     }
 

@@ -47,8 +47,7 @@ class Database(val dbName: String, val store: IStore) {
             val tablesCount = stream.unpackInt32()
             val dbTables = mutableListOf<Table>()
             for (i in 0 until tablesCount) {
-                val (table, tmpRemaining) = Table.metaFromBytes(db, stream.remaining)
-                stream.remaining = tmpRemaining
+                val table = Table.metaFromBytes(db, stream)
                 dbTables += table
             }
             db.tables = dbTables

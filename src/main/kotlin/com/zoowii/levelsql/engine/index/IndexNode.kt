@@ -7,6 +7,7 @@ import com.alibaba.fastjson.serializer.SerializerFeature
 import com.zoowii.levelsql.engine.exceptions.IndexException
 import com.zoowii.levelsql.engine.exceptions.SerializeException
 import com.zoowii.levelsql.engine.store.*
+import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import com.zoowii.levelsql.engine.utils.compareNodeKey
 import com.zoowii.levelsql.engine.utils.removeIndex
 import com.zoowii.levelsql.engine.utils.safeSlice
@@ -55,81 +56,44 @@ data class IndexNode(var nodeId: Int, var parentNodeId: Int, var leftNodeId: Int
         return resultBytes
     }
 
-    override fun fromBytes(bytes: ByteArray): Pair<IndexNode, ByteArray> {
-        var remaining: ByteArray = bytes
+    override fun fromBytes(stream: ByteArrayStream): IndexNode {
+        this.leaf = stream.unpackBoolean()
+        this.nodeId = stream.unpackInt32()
+        this.parentNodeId = stream.unpackInt32()
+
+        if(stream.unpackBoolean()) {
+            this.leftNodeId = stream.unpackInt32()
+        } else {
+            this.leftNodeId = null
+        }
+
+        if(stream.unpackBoolean()) {
+            this.rightNodeId = stream.unpackInt32()
+        } else {
+            this.rightNodeId = null
+        }
 
         run {
-            val p = BooleanFromBytes(remaining)
-            this.leaf = p.first
-            remaining = p.second
-        }
-
-        run {
-            val p = Int32FromBytes(remaining)
-            this.nodeId = p.first
-            remaining = p.second
-        }
-        run {
-            val p = Int32FromBytes(remaining)
-            this.parentNodeId = p.first
-            remaining = p.second
-        }
-        run {
-            val p = BooleanFromBytes(remaining)
-            if(p.first) {
-                val p2 = Int32FromBytes(p.second)
-                this.leftNodeId = p2.first
-                remaining = p2.second
-            } else {
-                this.leftNodeId = null
-                remaining = p.second
-            }
-        }
-        run {
-            val p = BooleanFromBytes(remaining)
-            if(p.first) {
-                val p2 = Int32FromBytes(p.second)
-                this.rightNodeId = p2.first
-                remaining = p2.second
-            } else {
-                this.rightNodeId = null
-                remaining = p.second
-            }
-        }
-        run {
-            val subNodesCount: Int
-            val p = Int32FromBytes(remaining)
-            subNodesCount = p.first
-            remaining = p.second
+            val subNodesCount = stream.unpackInt32()
             for (i in 0 until subNodesCount) {
                 val node = NodePosition(0)
-                val p2 = node.fromBytes(remaining)
-                remaining = p2.second
-                this.subNodes += node
+                this.subNodes += node.fromBytes(stream)
             }
         }
         run {
-            val p = Int32FromBytes(remaining)
-            val nodeKeysCount = p.first
-            remaining = p.second
+            val nodeKeysCount = stream.unpackInt32()
             for (i in 0 until nodeKeysCount) {
-                val p2 = ByteArrayFromBytes(remaining)
-                remaining = p2.second
-                this.nodeKeys += p2.first
+                this.nodeKeys += stream.unpackByteArray()
             }
         }
         run {
-            val p = Int32FromBytes(remaining)
-            val valuesCount = p.first
-            remaining = p.second
+            val valuesCount = stream.unpackInt32()
             for (i in 0 until valuesCount) {
                 val item = IndexLeafNodeValue(RowId(byteArrayOf()), byteArrayOf(), byteArrayOf())
-                val p2 = item.fromBytes(remaining)
-                remaining = p2.second
-                this.values += p2.first
+                this.values += item.fromBytes(stream)
             }
         }
-        return Pair(this, remaining)
+        return this
     }
 
     fun leftKey(): ByteArray {

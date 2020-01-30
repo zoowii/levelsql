@@ -2,6 +2,7 @@ package com.zoowii.levelsql.engine.store
 
 import com.google.common.primitives.Ints
 import com.zoowii.levelsql.engine.exceptions.SerializeException
+import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import java.io.ByteArrayOutputStream
 import java.util.*
 import kotlin.experimental.and
@@ -9,7 +10,7 @@ import kotlin.experimental.and
 interface StoreSerializable<T> {
     fun toBytes(): ByteArray
     // throws Exception
-    fun fromBytes(bytes: ByteArray): Pair<T, ByteArray>
+    fun fromBytes(stream: ByteArrayStream): T
 }
 
 fun Int.toBytes(): ByteArray {

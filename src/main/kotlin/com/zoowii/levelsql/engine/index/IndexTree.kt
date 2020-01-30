@@ -129,7 +129,7 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
             return Pair(IndexMetaNode(0, nodeBytesSize, nodeSubMaxCount, ascSort, NodePosition(-1)), true)
         } else {
             val metaNode_ = IndexMetaNode(0, nodeBytesSize, nodeSubMaxCount, ascSort, NodePosition(-1))
-            val (metaNode, _) = metaNode_.fromBytes(metaInfoBytes)
+            val metaNode = metaNode_.fromBytes(ByteArrayStream(metaInfoBytes))
             return Pair(metaNode, false)
         }
     }
@@ -153,8 +153,7 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
             return null
         } else {
             val node = IndexNode(nodeId, -1, null, null, nodeBytesSize, nodeSubMaxCount, false)
-            val p = node.fromBytes(nodeBytes)
-            return p.first
+            return node.fromBytes(ByteArrayStream(nodeBytes))
         }
     }
 
