@@ -14,3 +14,4 @@ target
 /test_table_docs
 /table_tests
 /table_tests_local
+/engine_tests_local

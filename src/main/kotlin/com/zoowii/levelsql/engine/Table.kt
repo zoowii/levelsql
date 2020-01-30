@@ -5,13 +5,41 @@ import com.zoowii.levelsql.engine.exceptions.IndexException
 import com.zoowii.levelsql.engine.index.IndexLeafNodeValue
 import com.zoowii.levelsql.engine.index.IndexNodeValue
 import com.zoowii.levelsql.engine.index.IndexTree
+import com.zoowii.levelsql.engine.store.Int32FromBytes
 import com.zoowii.levelsql.engine.store.RowId
+import com.zoowii.levelsql.engine.store.StringFromBytes
+import com.zoowii.levelsql.engine.store.toBytes
 import com.zoowii.levelsql.engine.utils.KeyCondition
+import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.util.concurrent.atomic.AtomicLong
 
 class Table(val db: Database, val tblName: String, val nodeBytesSize: Int=1024*16, val treeDegree: Int = 100) {
-    // TODO: table要支持多个索引，每个索引可能使用多个字段
 
+
+    fun metaToBytes(): ByteArray {
+        val out = ByteArrayOutputStream()
+        out.write(db.dbName.toBytes())
+        out.write(tblName.toBytes())
+        out.write(nodeBytesSize.toBytes())
+        out.write(treeDegree.toBytes())
+        return out.toByteArray()
+    }
+
+    companion object {
+        fun metaFromBytes(db: Database, data: ByteArray): Pair<Table, ByteArray> {
+            val (dbName, remaining1) = StringFromBytes(data)
+            val (tblName, remaining2) = StringFromBytes(remaining1)
+            val (nodeBytesSize, remaining3) = Int32FromBytes(remaining2)
+            val (treeDegree, remaining4) = Int32FromBytes(remaining3)
+            if(dbName!=db.dbName) {
+                throw IOException("conflict db name $dbName and ${db.dbName} when load table")
+            }
+            return Pair(Table(db, tblName, nodeBytesSize, treeDegree), remaining4)
+        }
+    }
+
+    // TODO: table要支持多个索引，每个索引可能使用多个字段
     private val tree = IndexTree(db.store, "db_${db.dbName}_table_${tblName}_primary_index",
             nodeBytesSize, treeDegree, true)
 
@@ -79,5 +107,4 @@ class Table(val db: Database, val tblName: String, val nodeBytesSize: Int=1024*1
     fun toFullTreeString(): String {
         return tree.toFullTreeString()
     }
-
 }

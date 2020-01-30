@@ -119,7 +119,7 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
         return JSON.toJSONString(rootNodeJson, SerializerFeature.PrettyFormat)
     }
 
-    private val metaInfoKey = StoreKey("${indexUniqueName}_metainfo", 0)
+    private val metaInfoKey = StoreKey("${indexUniqueName}_metainfo", -1)
 
     // return (metaNode, isNewNode)
     fun getMetaInfo(): Pair<IndexMetaNode, Boolean> {

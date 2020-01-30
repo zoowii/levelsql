@@ -33,7 +33,7 @@ fun String.toBytes(): ByteArray {
 }
 
 fun StringFromBytes(data: ByteArray): Pair<String, ByteArray> {
-    val (len, remaining) = Int32FromBytes(data.copyOfRange(0, 4))
+    val (len, remaining) = Int32FromBytes(data)
     val chars = data.copyOfRange(4, len + 4)
     return Pair(String(chars), remaining.copyOfRange(len, remaining.size))
 }
