@@ -17,7 +17,7 @@ class CreateDatabaseStatement(val line: Int, val dbName: String) : Statement {
     }
 }
 
-class SqlColumnDef(val name: String, val definition: String) {
+class SqlColumnDef(val name: String, val definition: String) : Statement {
     override fun toString(): String {
         return "$name $definition"
     }
@@ -48,7 +48,7 @@ class InsertStatement(val line: Int, val tblName: String, val columns: List<Stri
     }
 }
 
-interface CondExpr {
+interface CondExpr : Statement {
 
 }
 
@@ -64,7 +64,7 @@ class BinOpExpr(val op: Token, val left: CondExpr, val right: CondExpr) : CondEx
     }
 }
 
-class WhereSubQuery(val cond: CondExpr) {
+class WhereSubQuery(val cond: CondExpr) : Statement {
     override fun toString(): String {
         return cond.toString()
     }
@@ -83,37 +83,37 @@ class DeleteStatement(val line: Int, val tblName: String, val where: WhereSubQue
     }
 }
 
-class RefExprSubQuery(val tblName: String, val columnName: String) {
+class RefExprSubQuery(val tblName: String, val columnName: String) : Statement {
     override fun toString(): String {
         return "$tblName.$columnName"
     }
 }
 
-class OnSubQuery(val left: RefExprSubQuery, val right: RefExprSubQuery) {
+class OnSubQuery(val left: RefExprSubQuery, val right: RefExprSubQuery) : Statement {
     override fun toString(): String {
         return "$left = $right"
     }
 }
 
-class JoinSubQuery(val joinType: String, val target: String, val on: OnSubQuery) {
+class JoinSubQuery(val joinType: String, val target: String, val on: OnSubQuery) : Statement {
     override fun toString(): String {
         return "$joinType join $target on $on"
     }
 }
 
-class OrderBySubQuery(val column: String, val asc: Boolean) {
+class OrderBySubQuery(val column: String, val asc: Boolean) : Statement {
     override fun toString(): String {
         return "$column ${if (asc) "asc" else "desc"}"
     }
 }
 
-class GroupBySubQuery(val column: String) {
+class GroupBySubQuery(val column: String) : Statement {
     override fun toString(): String {
         return column
     }
 }
 
-class LimitSubQuery(val offset: Long, val limit: Long) {
+class LimitSubQuery(val offset: Long, val limit: Long) : Statement {
     override fun toString(): String {
         return "limit $offset, $limit"
     }
@@ -125,14 +125,14 @@ class SelectStatement(val line: Int, val selectItems: List<Token>, val froms: Li
     override fun toString(): String {
         return "select ${selectItems.joinToString(", ")} from ${froms.joinToString(", ")}" +
                 joins.map { it.toString() }.joinToString(", ") + " " +
-                (if (where != null) where else "") + (if (orderBys.isNotEmpty()) " order by ${orderBys.joinToString(", ")}" else "") +
+                (where ?: "") + (if (orderBys.isNotEmpty()) " order by ${orderBys.joinToString(", ")}" else "") +
                 (if (groupBys.isNotEmpty()) " group by ${groupBys.joinToString(", ")}" else "") + " " +
-                (if (limit != null) limit else "")
+                (limit ?: "")
 
     }
 }
 
-class AlterActionSubQuery(val actionType: Token, val columnName: String, val columnType: Token?) {
+class AlterActionSubQuery(val actionType: Token, val columnName: String, val columnType: Token?) : Statement {
     override fun toString(): String {
         return "$actionType $columnName" + (if (columnType != null) " $columnType" else "")
     }

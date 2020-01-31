@@ -226,9 +226,6 @@ class IndexTreeTestCase {
         writeTreeJsonToFile(treeJson, "test_docs/testSeekByGreatCondition.json")
         for(i in 1 until keysCount-1) {
             val cond = GreatThanKeyCondition(i.toBytes())
-            if(i==11) {
-                print("")
-            }
             val found = tree.seekByCondition(cond)
             assertTrue(found!=null)
             if(found==null) {

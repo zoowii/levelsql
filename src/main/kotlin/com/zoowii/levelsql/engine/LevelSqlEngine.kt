@@ -3,11 +3,19 @@ package com.zoowii.levelsql.engine
 import com.zoowii.levelsql.engine.exceptions.DbException
 import com.zoowii.levelsql.engine.store.*
 import com.zoowii.levelsql.engine.utils.ByteArrayStream
+import com.zoowii.levelsql.engine.utils.logger
+import com.zoowii.levelsql.sql.PlannerBuilder
+import com.zoowii.levelsql.sql.parser.SqlParser
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.sql.SQLException
+import java.util.concurrent.ConcurrentHashMap
 
 class LevelSqlEngine(val store: IStore) {
-    private var databases: List<Database> = listOf()
+    private val log = logger()
+
+    private var databases = listOf<Database>()
+    private var sessions = ConcurrentHashMap<Long, DbSession>()
 
     // 从store中加载元信息
     fun loadMeta() {
@@ -66,6 +74,30 @@ class LevelSqlEngine(val store: IStore) {
 
     override fun toString(): String {
         return "engine: \n${databases.map { "\t${it.dbName}" }.joinToString("\n")}"
+    }
+
+    fun createSession(): DbSession {
+        val sess = DbSession()
+        sessions[sess.id] = sess
+        return sess
+    }
+
+    // 解析执行SQL语句的API
+    fun executeSQL(session: DbSession, sqls: String) {
+        if(session != sessions.getOrDefault(session.id, null)) {
+            throw SQLException("not active db session")
+        }
+        val input = ByteArrayInputStream(sqls.toByteArray())
+        val parser = SqlParser("session-${session.id}", input)
+        parser.parse()
+        val stmts = parser.getStatements()
+        // TODO: 把stmts各SQL语句依次转成planner交给executor处理
+        for(stmt in stmts) {
+            val logicalPlanner = PlannerBuilder.sqlNodeToPlanner(session, stmt)
+            log.debug("logical planner:\n$logicalPlanner")
+            // TODO: optimize, to physical planner, physical planner optimize
+            // TODO: use executor to execute planner
+        }
     }
 
 }
