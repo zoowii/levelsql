@@ -14,9 +14,11 @@ simple relational sql database
 * KV db store (在KV数据库比如leveldb/redis之上作为存储层)
 * OSS store(把对象存储作为存储层)
 
+# DOING
+* logic planner/physical planner/optimizer
+
 # TODO
 * performance test
 * mysql protocol
-* logic planner/physical planner/optimizer
 * skiplist based index in memory
 * LSM based store and index

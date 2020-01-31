@@ -53,7 +53,7 @@ class TableTests {
                 TableColumnDefinition("name", VarCharColumnType(50), true),
                 TableColumnDefinition("age", IntColumnType(), true)
         )
-        return Table(db!!, userTableName, columns, 1024 * 16, 4)
+        return Table(db!!, userTableName, "id", columns, 1024 * 16, 4)
     }
 
     private fun writeTreeJsonToFile(treeJsonStr: String, outputPath: String) {

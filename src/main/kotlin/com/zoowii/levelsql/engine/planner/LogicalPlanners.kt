@@ -12,7 +12,8 @@ class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalP
 }
 
 // 从索引中检索数据的planner
-class IndexSelectPlanner(private val sess: DbSession, val tblName: String, val indexName: String, val indexColumns: List<String>) : LogicalPlanner(sess) {
+class IndexSelectPlanner(private val sess: DbSession, val tblName: String, val indexName: String,
+                         val indexColumns: List<String>) : LogicalPlanner(sess) {
     override fun toString(): String {
         return "index select $tblName by index $indexName (${indexColumns.joinToString(", ")})${childrenToString()}"
     }

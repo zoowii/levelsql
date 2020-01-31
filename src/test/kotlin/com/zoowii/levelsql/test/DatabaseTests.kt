@@ -29,7 +29,8 @@ class DatabaseTests {
                 TableColumnDefinition("name", VarCharColumnType(50), true),
                 TableColumnDefinition("age", IntColumnType(), true)
         )
-        db.createTable("employee", employeeTableColumns)
+        val table = db.createTable("employee", employeeTableColumns, "id")
+        table.createIndex("employee_name_idx", listOf("name"), false)
         db.saveMeta()
         println("engine saved $engine")
         println("db saved $db")

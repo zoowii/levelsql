@@ -55,14 +55,14 @@ class Database(val dbName: String, val store: IStore) {
         }
     }
 
-    fun createTable(tableName: String, columns: List<TableColumnDefinition>): Table {
+    fun createTable(tableName: String, columns: List<TableColumnDefinition>, primaryKey: String): Table {
         if (tables.any { it.tblName == tableName }) {
             throw DbException("table ${tableName} existed before")
         }
         if(columns.isEmpty()) {
             throw DbException("table can't be empty")
         }
-        val tbl = Table(this, tableName, columns)
+        val tbl = Table(this, tableName, primaryKey, columns)
         this.tables += tbl
         return tbl
     }
