@@ -18,5 +18,11 @@ class Chunk() {
             }
             return result
         }
+
+        fun singleLongValue(value: Long): Chunk {
+            val row = Row()
+            row.data = listOf(Datum(DatumTypes.kindInt64, intValue = value))
+            return Chunk().replaceRows(listOf(row))
+        }
     }
 }

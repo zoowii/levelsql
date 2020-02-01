@@ -1,9 +1,8 @@
 package com.zoowii.levelsql.engine.planner
 
+import com.zoowii.levelsql.*
 import com.zoowii.levelsql.engine.DbSession
-import com.zoowii.levelsql.sql.ast.InsertStatement
-import com.zoowii.levelsql.sql.ast.SelectStatement
-import com.zoowii.levelsql.sql.ast.Statement
+import com.zoowii.levelsql.sql.ast.*
 import java.sql.SQLException
 
 // 把SQL AST转成planner树
@@ -97,6 +96,31 @@ object PlannerBuilder {
             InsertStatement::class.java -> {
                 stmt as InsertStatement
                 return InsertPlanner(session, stmt.tblName, stmt.columns, stmt.rows)
+            }
+            CreateDatabaseStatement::class.java -> {
+                stmt as CreateDatabaseStatement
+                return CreateDatabasePlanner(session, stmt.dbName)
+            }
+            CreateTableStatement::class.java -> {
+                stmt as CreateTableStatement
+                // TODO: 暂时只用id这个字段作为主键
+                val primaryKeyColumn = stmt.columns.firstOrNull { it.name == "id" }
+                        ?: throw SQLException("no primary key provided")
+                val columnDefinitions = stmt.columns.map {
+                    val nullable = true // 目前默认就用nullable
+                    // TODO: 需要解析出具体的类型定义
+                    val definitionLower = it.definition.toLowerCase()
+                    val columnType = when {
+                        definitionLower == "int" -> IntColumnType()
+                        definitionLower == "string" -> TextColumnType()
+                        definitionLower == "text" -> TextColumnType()
+                        definitionLower.startsWith("varchar") -> VarCharColumnType(100)
+                        definitionLower == "bool" -> BoolColumnType()
+                        else -> throw SQLException("unknown column definition ${it.definition}")
+                    }
+                    TableColumnDefinition(it.name, columnType, nullable)
+                }
+                return CreateTablePlanner(session, stmt.tblName, columnDefinitions, primaryKeyColumn.name)
             }
             // TODO: 其他SQL AST节点类型
             else -> {

@@ -73,6 +73,10 @@ class LevelSqlEngine(val store: IStore) {
         return databases.firstOrNull { it.dbName == dbName } ?: throw DbException("database ${dbName} not found")
     }
 
+    fun containsDatabase(dbName: String): Boolean {
+        return databases.any { it.dbName == dbName }
+    }
+
     override fun toString(): String {
         return "engine: \n${databases.map { "\t${it.dbName}" }.joinToString("\n")}"
     }

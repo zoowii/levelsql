@@ -3,6 +3,7 @@ package com.zoowii.levelsql.test
 import com.zoowii.levelsql.IntColumnType
 import com.zoowii.levelsql.TableColumnDefinition
 import com.zoowii.levelsql.VarCharColumnType
+import com.zoowii.levelsql.engine.Database
 import com.zoowii.levelsql.engine.LevelSqlEngine
 import com.zoowii.levelsql.engine.store.IStore
 import com.zoowii.levelsql.engine.store.LocalFileStore
@@ -19,7 +20,20 @@ class PlannerTests {
         store = LocalFileStore.openStore(localDbFile)
 
         val engine = LevelSqlEngine(store!!)
-        val db = engine.createDatabase("test")
+
+        run {
+            if (!engine.containsDatabase("test1")) {
+                val session = engine.createSession()
+                engine.executeSQL(session, "create database test1")
+            }
+        }
+
+        val db: Database
+        if (engine.containsDatabase("test")) {
+            db = engine.openDatabase("test")
+        } else {
+            db = engine.createDatabase("test")
+        }
         engine.saveMeta()
 
         val employeeTableColumns = listOf(
@@ -46,11 +60,19 @@ class PlannerTests {
         countryTable.createIndex("country_name_idx", listOf("country_name"), false)
 
         db.saveMeta()
+
+        run {
+            val session = engine.createSession()
+            session.useDb("test")
+            engine.executeSQL(session, "create table user (id int, name text, gender text)")
+        }
+
         println("engine saved $engine")
         println("db saved $db")
     }
 
-    @Test fun testSimpleSelectWithJoinLogicalPlanner() {
+    @Test
+    fun testSimpleSelectWithJoinLogicalPlanner() {
         val engine = LevelSqlEngine(store!!)
         engine.loadMeta()
         val session = engine.createSession()
@@ -60,7 +82,8 @@ class PlannerTests {
         engine.executeSQL(session, sql1)
     }
 
-    @Test fun testSimpleSelectLogicalPlanner() {
+    @Test
+    fun testSimpleSelectLogicalPlanner() {
         val engine = LevelSqlEngine(store!!)
         engine.loadMeta()
         val session = engine.createSession()
@@ -69,7 +92,8 @@ class PlannerTests {
         engine.executeSQL(session, sql1)
     }
 
-    @Test fun testInsertSqlLogicalPlanner() {
+    @Test
+    fun testInsertSqlLogicalPlanner() {
         val engine = LevelSqlEngine(store!!)
         engine.loadMeta()
         val session = engine.createSession()
