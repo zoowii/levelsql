@@ -65,7 +65,7 @@ class LevelSqlEngine(val store: IStore) {
             throw DbException("database ${dbName} existed before")
         }
         val db = Database(dbName, store)
-        databases += db
+        databases = databases + db
         return db
     }
 
@@ -97,14 +97,14 @@ class LevelSqlEngine(val store: IStore) {
         parser.parse()
         val dbExecutor = DbExecutor()
         val stmts = parser.getStatements()
-        // TODO: 把stmts各SQL语句依次转成planner交给executor处理
+        // 把stmts各SQL语句依次转成planner交给executor处理
         for (stmt in stmts) {
             val logicalPlanner = PlannerBuilder.sqlNodeToPlanner(session, stmt)
             log.debug("logical planner:\n$logicalPlanner")
             // TODO: optimize, to physical planner, physical planner optimize
-            // TODO: use executor to execute planner
+            // use executor to execute planner
             val chunk = dbExecutor.executePlanner(logicalPlanner)
-            log.debug("result:\n${chunk.rows.joinToString("\n")}")
+            log.debug("result:\n${logicalPlanner.getOutputNames().joinToString("\t")}\n${chunk.rows.joinToString("\n")}")
         }
         dbExecutor.shutdown()
     }

@@ -1,5 +1,7 @@
 package com.zoowii.levelsql.sql.scanner
 
+import com.zoowii.levelsql.engine.types.Datum
+import com.zoowii.levelsql.engine.types.DatumTypes
 import java.math.BigDecimal
 
 val firstReserved: Rune = 257 // 257是第一个非ASCII字符，用来代表保留关键字的类型。1-256的字符本身代表自己的token类型
@@ -101,5 +103,21 @@ class Token(var t: Rune, var i: Long?=null, var n: BigDecimal?=null, var s: Stri
             }
         }
         return tokens[t - firstReserved]
+    }
+
+    fun isLiteralValue(): Boolean {
+        return listOf(TokenTypes.tkNull, TokenTypes.tkInt, TokenTypes.tkString,
+                TokenTypes.tkTrue, TokenTypes.tkFalse).contains(t)
+    }
+
+    fun getLiteralDatumValue(): Datum {
+        return when(t) {
+            TokenTypes.tkNull -> Datum(DatumTypes.kindNull)
+            TokenTypes.tkInt -> Datum(DatumTypes.kindInt64, intValue = i)
+            TokenTypes.tkString -> Datum(DatumTypes.kindString, stringValue = s)
+            TokenTypes.tkTrue -> Datum(DatumTypes.kindBool, boolValue = true)
+            TokenTypes.tkFalse -> Datum(DatumTypes.kindBool, boolValue = false)
+            else -> Datum(DatumTypes.kindNull)
+        }
     }
 }

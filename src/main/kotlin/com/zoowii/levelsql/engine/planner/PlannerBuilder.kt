@@ -31,6 +31,8 @@ object PlannerBuilder {
                  *    select from tables(from A1, A2)        select from joined-tables
                  */
                 stmt as SelectStatement
+                // TODO: 各planner的实例需要设置输出的各列名称
+
                 // 目前没有聚合操作，顶层直接就是projection
                 val projection = ProjectionPlanner(session, stmt.selectItems.map { it.toString() })
                 var currentLevel: LogicalPlanner = projection
@@ -91,6 +93,8 @@ object PlannerBuilder {
                     }
                 }
 
+                projection.setTreeOutputNames()
+
                 return projection
             }
             InsertStatement::class.java -> {
@@ -121,6 +125,11 @@ object PlannerBuilder {
                     TableColumnDefinition(it.name, columnType, nullable)
                 }
                 return CreateTablePlanner(session, stmt.tblName, columnDefinitions, primaryKeyColumn.name)
+            }
+            CreateIndexStatement::class.java -> {
+                stmt as CreateIndexStatement
+                val unique = false // 当前索引都按非unique索引处理
+                return CreateIndexPlanner(session, stmt.indexName, stmt.tblName, stmt.columns, unique)
             }
             // TODO: 其他SQL AST节点类型
             else -> {

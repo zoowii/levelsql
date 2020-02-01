@@ -65,6 +65,13 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
     // 二级索引
     private var secondaryIndexes = listOf<Index>()
 
+    fun containsIndex(indexName: String): Boolean {
+        if (primaryIndex.indexName == indexName) {
+            return true
+        }
+        return secondaryIndexes.any { it.indexName == indexName }
+    }
+
     fun openIndex(indexName: String): Index? {
         if (primaryIndex.indexName == indexName) {
             return primaryIndex

@@ -28,11 +28,12 @@ class PlannerTests {
             }
         }
 
+        val testDbName = "test"
         val db: Database
-        if (engine.containsDatabase("test")) {
-            db = engine.openDatabase("test")
+        if (engine.containsDatabase(testDbName)) {
+            db = engine.openDatabase(testDbName)
         } else {
-            db = engine.createDatabase("test")
+            db = engine.createDatabase(testDbName)
         }
         engine.saveMeta()
 
@@ -45,25 +46,25 @@ class PlannerTests {
         val employeeTable = db.createTable("employee", employeeTableColumns, "id")
         employeeTable.createIndex("employee_name_idx", listOf("name"), false)
 
-        val personTableColumns = listOf(
-                TableColumnDefinition("id", IntColumnType(), false),
-                TableColumnDefinition("person_name", VarCharColumnType(50), true)
-        )
-        val personTable = db.createTable("person", personTableColumns, "id")
-        personTable.createIndex("person_name_idx", listOf("person_name"), false)
-
-        val countryTableColumns = listOf(
-                TableColumnDefinition("id", IntColumnType(), false),
-                TableColumnDefinition("country_name", VarCharColumnType(50), true)
-        )
-        val countryTable = db.createTable("country", countryTableColumns, "id")
-        countryTable.createIndex("country_name_idx", listOf("country_name"), false)
-
         db.saveMeta()
 
         run {
             val session = engine.createSession()
-            session.useDb("test")
+            session.useDb(testDbName)
+            engine.executeSQL(session, "create table person (id int, person_name text)")
+            engine.executeSQL(session, "create index person_name_idx on person (per_name)")
+        }
+
+        run {
+            val session = engine.createSession()
+            session.useDb(testDbName)
+            engine.executeSQL(session, "create table country (id int, country_name text)")
+            engine.executeSQL(session, "create index country_name_idx on country (country_name)")
+        }
+
+        run {
+            val session = engine.createSession()
+            session.useDb(testDbName)
             engine.executeSQL(session, "create table user (id int, name text, gender text)")
         }
 
@@ -88,7 +89,7 @@ class PlannerTests {
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
-        val sql1 = "select name, age, * from employee where id > 3 limit 1,2"
+        val sql1 = "select name, age, * from employee where id > 1 limit 1,2"
         engine.executeSQL(session, sql1)
     }
 

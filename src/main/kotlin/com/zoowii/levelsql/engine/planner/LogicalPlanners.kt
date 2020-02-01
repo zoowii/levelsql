@@ -2,9 +2,9 @@ package com.zoowii.levelsql.engine.planner
 
 import com.zoowii.levelsql.TableColumnDefinition
 import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.exceptions.DbException
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.index.IndexNodeValue
-import com.zoowii.levelsql.engine.store.bytesToHex
 import com.zoowii.levelsql.engine.types.Chunk
 import com.zoowii.levelsql.engine.types.Datum
 import com.zoowii.levelsql.engine.types.DatumTypes
@@ -23,7 +23,7 @@ class CreateDatabasePlanner(private val sess: DbSession, val dbName: String) : L
     private var executed = false
 
     override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
-        if(executed) {
+        if (executed) {
             fetchTask.submitSourceEnd()
             return
         }
@@ -46,6 +46,10 @@ class CreateDatabasePlanner(private val sess: DbSession, val dbName: String) : L
         simplePassChildrenTasks(fetchTask, childrenFetchTasks)
     }
 
+    override fun setSelfOutputNames() {
+        setOutputNames(listOf("count"))
+    }
+
 }
 
 // 创建table的planner
@@ -54,7 +58,7 @@ class CreateTablePlanner(private val sess: DbSession, val tblName: String, val c
     private var executed = false
 
     override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
-        if(executed) {
+        if (executed) {
             fetchTask.submitSourceEnd()
             return
         }
@@ -78,6 +82,50 @@ class CreateTablePlanner(private val sess: DbSession, val tblName: String, val c
         simplePassChildrenTasks(fetchTask, childrenFetchTasks)
     }
 
+    override fun setSelfOutputNames() {
+        setOutputNames(listOf("count"))
+    }
+
+}
+
+// 创建索引的planner
+class CreateIndexPlanner(private val sess: DbSession, val indexName: String, val tblName: String,
+                         val columns: List<String>, val unique: Boolean) : LogicalPlanner(sess) {
+    private var executed = false
+
+    override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
+        if (executed) {
+            fetchTask.submitSourceEnd()
+            return
+        }
+        executed = true
+
+        val db = sess.db ?: throw SQLException("database not opened. need use one-database")
+        try {
+            val table = db.openTable(tblName)
+            if (table.containsIndex(indexName)) {
+                throw DbException("index name $indexName conflict")
+            }
+            table.createIndex(indexName, columns, unique)
+            db.saveMeta()
+            fetchTask.submitChunk(Chunk.singleLongValue(1))
+        } catch (e: Exception) {
+            fetchTask.submitError(e.message!!)
+        }
+    }
+
+    override fun afterChildrenTasksSubmitted(fetchTask: FetchTask, childrenFetchFutures: List<Future<FetchTask>>) {
+
+    }
+
+    override fun afterChildrenTasksDone(fetchTask: FetchTask, childrenFetchTasks: List<FetchTask>) {
+        simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+    }
+
+    override fun setSelfOutputNames() {
+        setOutputNames(listOf("count"))
+    }
+
 }
 
 // insert记录的planner
@@ -86,7 +134,7 @@ class InsertPlanner(private val sess: DbSession, val tblName: String, val column
     private var executed = false
 
     override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
-        if(executed) {
+        if (executed) {
             fetchTask.submitSourceEnd()
             return
         }
@@ -99,23 +147,19 @@ class InsertPlanner(private val sess: DbSession, val tblName: String, val column
         val datumRows = rows.map {
             val row = it
             row.map {
-                when(it.t) {
-                    TokenTypes.tkNull -> Datum(DatumTypes.kindNull)
-                    TokenTypes.tkInt -> Datum(DatumTypes.kindInt64, intValue = it.i)
-                    TokenTypes.tkString -> Datum(DatumTypes.kindString, stringValue = it.s)
-                    TokenTypes.tkTrue -> Datum(DatumTypes.kindBool, boolValue = true)
-                    TokenTypes.tkFalse -> Datum(DatumTypes.kindBool, boolValue = false)
+                when {
+                    it.isLiteralValue() -> it.getLiteralDatumValue()
                     else -> throw SQLException("unknown datum from token type ${it.t}")
                 }
             }
         }
         // TODO: 把rows根据columns顺序和table的结构重排序，填充入没提高的自动填充的值和默认值，构成List<Row>
-        for(datumRow in datumRows) {
+        for (datumRow in datumRows) {
             // 对插入的各记录，找到主键的值
             val primaryKeyIndex = columns.indexOf(table.primaryKey)
-            if(primaryKeyIndex<0)
+            if (primaryKeyIndex < 0)
                 throw SQLException("now must insert into table with primary key value")
-            if(datumRow.size!=columns.size) {
+            if (datumRow.size != columns.size) {
                 throw SQLException("row value count not equal to columns count")
             }
             val primaryKeyValue = datumRow[primaryKeyIndex]
@@ -123,6 +167,7 @@ class InsertPlanner(private val sess: DbSession, val tblName: String, val column
             row.data = datumRow
             table.rawInsert(primaryKeyValue.toBytes(), row.toBytes())
         }
+        fetchTask.submitChunk(Chunk.singleLongValue(datumRows.size.toLong())) // 输出添加的行数
     }
 
     override fun afterChildrenTasksSubmitted(fetchTask: FetchTask, childrenFetchFutures: List<Future<FetchTask>>) {
@@ -131,6 +176,10 @@ class InsertPlanner(private val sess: DbSession, val tblName: String, val column
 
     override fun afterChildrenTasksDone(fetchTask: FetchTask, childrenFetchTasks: List<FetchTask>) {
         simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+    }
+
+    override fun setSelfOutputNames() {
+        setOutputNames(listOf("count"))
     }
 
 }
@@ -150,7 +199,7 @@ class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalP
         if (sess.db == null) {
             throw SQLException("database not opened. need use one-database")
         }
-        if(sourceEnd) {
+        if (sourceEnd) {
             fetchTask.submitSourceEnd()
             return
         }
@@ -168,7 +217,7 @@ class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalP
             return
         }
         val record = seekedPos!!.leafRecord()
-        val row = Row().fromBytes( ByteArrayStream(record.value))
+        val row = Row().fromBytes(ByteArrayStream(record.value))
         log.debug("select planner fetched row: ${row}")
         fetchTask.submitChunk(Chunk().replaceRows(listOf(row)))
     }
@@ -181,6 +230,14 @@ class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalP
     override fun afterChildrenTasksDone(fetchTask: FetchTask,
                                         childrenFetchTasks: List<FetchTask>) {
         simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+    }
+
+    override fun setSelfOutputNames() {
+        if (sess.db == null) {
+            return
+        }
+        val table = sess.db!!.openTable(tblName)
+        setOutputNames(table.columns.map { it.name })
     }
 }
 
@@ -204,6 +261,14 @@ class IndexSelectPlanner(private val sess: DbSession, val tblName: String, val i
                                         childrenFetchTasks: List<FetchTask>) {
         simplePassChildrenTasks(fetchTask, childrenFetchTasks)
     }
+
+    override fun setSelfOutputNames() {
+        if (sess.db == null) {
+            return
+        }
+        val table = sess.db!!.openTable(tblName)
+        setOutputNames(table.columns.map { it.name })
+    }
 }
 
 // 聚合操作的planner
@@ -225,6 +290,10 @@ class AggregatePlanner(private val sess: DbSession, val funcName: String, val co
                                         childrenFetchTasks: List<FetchTask>) {
         // TODO
         simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+    }
+
+    override fun setSelfOutputNames() {
+        setOutputNames(listOf("$funcName($column)"))
     }
 }
 
@@ -248,6 +317,20 @@ class ProjectionPlanner(private val sess: DbSession, val columns: List<String>) 
         // TODO
         simplePassChildrenTasks(fetchTask, childrenFetchTasks)
     }
+
+    override fun setSelfOutputNames() {
+        // TODO: 如果不包含*，则output names是选择的列，如果包含*，则是选择的列 + children[0]（如果children非空）的各列
+        if (!columns.contains("*")) {
+            setOutputNames(columns)
+            return
+        }
+        val outputNames = mutableListOf<String>()
+        outputNames.addAll(columns.filter { it != "*" })
+        if (children.isNotEmpty()) {
+            outputNames.addAll(children[0].getOutputNames())
+        }
+        setOutputNames(outputNames)
+    }
 }
 
 // join table操作的planner
@@ -270,6 +353,11 @@ class JoinPlanner(private val sess: DbSession, val joinConditions: List<JoinSubQ
         // TODO
         simplePassChildrenTasks(fetchTask, childrenFetchTasks)
     }
+
+    override fun setSelfOutputNames() {
+        assert(children.isNotEmpty())
+        setOutputNames(children[0].getOutputNames())
+    }
 }
 
 // 按条件过滤数据的planner
@@ -289,8 +377,30 @@ class FilterPlanner(private val sess: DbSession, val cond: CondExpr) : LogicalPl
 
     override fun afterChildrenTasksDone(fetchTask: FetchTask,
                                         childrenFetchTasks: List<FetchTask>) {
-        // TODO
-        simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+        if (fetchTask.isEnd()) {
+            return
+        }
+        val (mergedChunk, hasSourceEnd, error) = mergeChildrenChunks(childrenFetchTasks)
+        if (error != null) {
+            fetchTask.submitError(error)
+            return
+        }
+        if (mergedChunk.rows.isEmpty() && hasSourceEnd) {
+            fetchTask.submitSourceEnd()
+            return
+        }
+        val outputNames = getOutputNames()
+        // 对输入数据(来自children的输出)做过滤
+        val filteredRows = mergedChunk.rows.filter {
+            val row = it
+            row.matchCondExpr(cond, outputNames)
+        }
+        fetchTask.submitChunk(Chunk().replaceRows(filteredRows))
+    }
+
+    override fun setSelfOutputNames() {
+        assert(children.isNotEmpty())
+        setOutputNames(children[0].getOutputNames())
     }
 }
 
@@ -314,6 +424,11 @@ class OrderByPlanner(private val sess: DbSession, val column: String, val asc: B
         // TODO
         simplePassChildrenTasks(fetchTask, childrenFetchTasks)
     }
+
+    override fun setSelfOutputNames() {
+        assert(children.isNotEmpty())
+        setOutputNames(children[0].getOutputNames())
+    }
 }
 
 // 对输入数据进行分组的planner
@@ -335,6 +450,11 @@ class GroupByPlanner(private val sess: DbSession, val column: String) : LogicalP
                                         childrenFetchTasks: List<FetchTask>) {
         // TODO
         simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+    }
+
+    override fun setSelfOutputNames() {
+        assert(children.isNotEmpty())
+        setOutputNames(children[0].getOutputNames())
     }
 }
 
@@ -358,6 +478,11 @@ class LimitPlanner(private val sess: DbSession, val offset: Long, val limit: Lon
         // TODO
         simplePassChildrenTasks(fetchTask, childrenFetchTasks)
     }
+
+    override fun setSelfOutputNames() {
+        assert(children.isNotEmpty())
+        setOutputNames(children[0].getOutputNames())
+    }
 }
 
 // 笛卡尔积的planner
@@ -379,5 +504,13 @@ class ProductPlanner(private val sess: DbSession) : LogicalPlanner(sess) {
                                         childrenFetchTasks: List<FetchTask>) {
         // TODO
         simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+    }
+
+    override fun setSelfOutputNames() {
+        val outputNames = mutableListOf<String>()
+        for (child in children) {
+            outputNames.addAll(child.getOutputNames())
+        }
+        setOutputNames(outputNames)
     }
 }

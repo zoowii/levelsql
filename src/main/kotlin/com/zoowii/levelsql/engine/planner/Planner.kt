@@ -81,12 +81,8 @@ abstract class LogicalPlanner(private val sess: DbSession) : Planner {
     protected abstract fun afterChildrenTasksDone(fetchTask: FetchTask,
                                                   childrenFetchTasks: List<FetchTask>)
 
-    // 简单转发children的结果，本身不做更多处理
-    protected fun simplePassChildrenTasks(fetchTask: FetchTask,
-                                          childrenFetchTasks: List<FetchTask>) {
-        if (fetchTask.isEnd()) {
-            return
-        }
+    // @return Triple(merged-chunk, hasSourceEndChild, error)
+    protected fun mergeChildrenChunks(childrenFetchTasks: List<FetchTask>): Triple<Chunk, Boolean, String?> {
         val chunks = mutableListOf<Chunk>()
         var hasSourceEnd = false
         for (childTask in childrenFetchTasks) {
@@ -100,16 +96,29 @@ abstract class LogicalPlanner(private val sess: DbSession) : Planner {
                 continue
             }
             if (childTask.error != null) {
-                fetchTask.submitError(childTask.error!!)
-                return
+                return Triple(Chunk(), hasSourceEnd, childTask.error)
             }
         }
         val mergedChunks = Chunk.mergeChunks(chunks)
-        if(mergedChunks.rows.isEmpty() && hasSourceEnd) {
+        return Triple(mergedChunks, hasSourceEnd, null)
+    }
+
+    // 简单转发children的结果，本身不做更多处理
+    protected fun simplePassChildrenTasks(fetchTask: FetchTask,
+                                          childrenFetchTasks: List<FetchTask>) {
+        if (fetchTask.isEnd()) {
+            return
+        }
+        val (mergedChunk, hasSourceEnd, error) = mergeChildrenChunks(childrenFetchTasks)
+        if(error!=null) {
+            fetchTask.submitError(error)
+            return
+        }
+        if(mergedChunk.rows.isEmpty() && hasSourceEnd) {
             fetchTask.submitSourceEnd()
             return
         }
-        fetchTask.submitChunk(mergedChunks)
+        fetchTask.submitChunk(mergedChunk)
     }
 
     private val executeChildPlannerTimeoutSeconds: Long = 10
@@ -141,6 +150,17 @@ abstract class LogicalPlanner(private val sess: DbSession) : Planner {
             tasks.add(fetchFuture)
         }
         return tasks
+    }
+
+    // 根据自身属性和children的outputNames设置本planner自身的outputNames
+    protected abstract fun setSelfOutputNames()
+
+    // 自底向上设置整棵planner树的outputNames
+    fun setTreeOutputNames() {
+        for(child in children) {
+            child.setTreeOutputNames()
+        }
+        setSelfOutputNames()
     }
 }
 
