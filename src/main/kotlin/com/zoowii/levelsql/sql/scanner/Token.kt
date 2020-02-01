@@ -48,17 +48,19 @@ object TokenTypes {
     val tkColumn: Rune = 37 + firstReserved
     val tkGroup: Rune = 38 + firstReserved
     val tkLimit: Rune = 39 + firstReserved
-    val tkNot: Rune = 40 + firstReserved
-    val tkNull: Rune = 41 + firstReserved
-    val tkGe: Rune = 42 + firstReserved
-    val tkLe: Rune = 43 + firstReserved
-    val tkNe: Rune = 44 + firstReserved
-    val tkGL: Rune = 45 + firstReserved // less or great than, 等价于 !=
-    val tkNumber: Rune = 46 + firstReserved
-    val tkInt: Rune = 47 + firstReserved
-    val tkName: Rune = 48 + firstReserved
-    val tkString: Rune = 49 + firstReserved
-    val tkEOS: Rune = 50 + firstReserved
+    val tkTrue: Rune = 40 + firstReserved
+    val tkFalse: Rune = 41 + firstReserved
+    val tkNot: Rune = 42 + firstReserved
+    val tkNull: Rune = 43 + firstReserved
+    val tkGe: Rune = 44 + firstReserved
+    val tkLe: Rune = 45 + firstReserved
+    val tkNe: Rune = 46 + firstReserved
+    val tkGL: Rune = 47 + firstReserved // less or great than, 等价于 !=
+    val tkNumber: Rune = 48 + firstReserved
+    val tkInt: Rune = 49 + firstReserved
+    val tkName: Rune = 50 + firstReserved
+    val tkString: Rune = 51 + firstReserved
+    val tkEOS: Rune = 52 + firstReserved
 
     val reservedCount: Rune = tkEOS - firstReserved + 1 // 保留关键字的数量
 }
@@ -67,7 +69,7 @@ val tokens = arrayOf("describe", "show", "create", "drop", "database", "table", 
         "select", "insert", "update", "delete", "alter", "and", "or", "where",
         "order", "by", "asc", "desc", "from", "join", "union", "left", "right", "inner", "outer", "full",
         "into", "default", "primary", "key", "auto_increment", "values", "set",
-        "explain", "on", "add", "column", "group", "limit",
+        "explain", "on", "add", "column", "group", "limit", "true", "false",
         "not", "null",
         ">=", "<=", "!=", "<>",
         "<number>", "<int>", "<name>", "<string>", "<eof>")

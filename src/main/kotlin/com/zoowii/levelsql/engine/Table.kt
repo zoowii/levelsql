@@ -15,7 +15,7 @@ import java.io.IOException
 import java.util.concurrent.atomic.AtomicLong
 
 class Table(val db: Database, val tblName: String, val primaryKey: String, val columns: List<TableColumnDefinition>,
-            val nodeBytesSize: Int=1024*16, val treeDegree: Int = 100) {
+            val nodeBytesSize: Int = 1024 * 16, val treeDegree: Int = 100) {
 
     fun metaToBytes(): ByteArray {
         val out = ByteArrayOutputStream()
@@ -23,7 +23,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         out.write(tblName.toBytes())
         out.write(primaryKey.toBytes())
         out.write(columns.size.toBytes())
-        for(c in columns) {
+        for (c in columns) {
             out.write(c.toBytes())
         }
         out.write(nodeBytesSize.toBytes())
@@ -45,7 +45,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
             val columns = (0 until columnsCount).map { TableColumnDefinition.fromBytes(stream) }
             val nodeBytesSize = stream.unpackInt32()
             val treeDegree = stream.unpackInt32()
-            if(dbName!=db.dbName) {
+            if (dbName != db.dbName) {
                 throw IOException("conflict db name $dbName and ${db.dbName} when load table")
             }
             val table = Table(db, tblName, primaryKey, columns, nodeBytesSize, treeDegree)
@@ -66,15 +66,15 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
     private var secondaryIndexes = listOf<Index>()
 
     fun openIndex(indexName: String): Index? {
-        if(primaryIndex.indexName == indexName) {
+        if (primaryIndex.indexName == indexName) {
             return primaryIndex
         }
-        return secondaryIndexes.firstOrNull {it.indexName==indexName}
+        return secondaryIndexes.firstOrNull { it.indexName == indexName }
     }
 
     fun createIndex(indexName: String, columns: List<String>, unique: Boolean): Index {
         val existed = openIndex(indexName)
-        if(existed!=null) {
+        if (existed != null) {
             throw DbException("index name $tblName.$indexName conflict")
         }
         val index = Index(this, indexName, columns, unique, false)
@@ -96,27 +96,30 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
     fun rawInsert(key: ByteArray, record: ByteArray) {
         val nextRowId = nextRowId()
         primaryIndex.tree.addKeyValue(IndexLeafNodeValue(nextRowId, key, record))
+        // TODO: 二级索引也需要修改记录
     }
 
     fun rawUpdate(rowId: RowId, key: ByteArray, record: ByteArray) {
         try {
             primaryIndex.tree.replaceKeyValue(IndexLeafNodeValue(rowId, key, record))
-        }catch(e: IndexException) {
+        } catch (e: IndexException) {
             throw DbException(e.message!!)
         }
+        // TODO: 二级索引也需要修改记录
     }
 
     fun rawDelete(key: ByteArray, rowId: RowId) {
         val nodeAndPos = primaryIndex.tree.findLeafNodeByKeyAndRowId(key, rowId)
-        if(nodeAndPos==null) {
+        if (nodeAndPos == null) {
             throw DbException("record not found for delete")
         }
         primaryIndex.tree.deleteByKeyAndRowId(key, rowId)
+        // TODO: 二级索引也需要修改记录
     }
 
     fun rawGet(key: ByteArray): IndexLeafNodeValue? {
         val (nodeAndPos, isNewNode) = primaryIndex.tree.findIndex(key, false)
-        if(nodeAndPos==null || isNewNode) {
+        if (nodeAndPos == null || isNewNode) {
             return null
         }
         return nodeAndPos.node.values[nodeAndPos.indexInNode]
@@ -128,7 +131,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
     }
 
     fun rawNextRecord(pos: IndexNodeValue?): IndexNodeValue? {
-        if(pos==null) {
+        if (pos == null) {
             return null
         }
         return primaryIndex.tree.nextRecordPosition(pos)
@@ -139,9 +142,9 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         val first = primaryIndex.tree.seekByCondition(condition) ?: return listOf()
         val mutableResult = mutableListOf<IndexLeafNodeValue>()
         var cur: IndexNodeValue? = first
-        while(cur!=null) {
+        while (cur != null) {
             val record = cur.leafRecord()
-            if(condition.match(record.key)) {
+            if (condition.match(record.key)) {
                 mutableResult += record
                 cur = primaryIndex.tree.nextRecordPosition(cur)
             } else {
@@ -160,6 +163,6 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
     }
 
     override fun toString(): String {
-        return "table $tblName (${columns.joinToString(", ") })" + (if(secondaryIndexes.isNotEmpty()) "\n\t${secondaryIndexes.joinToString("\n\t")}" else "")
+        return "table $tblName (${columns.joinToString(", ")})" + (if (secondaryIndexes.isNotEmpty()) "\n\t${secondaryIndexes.joinToString("\n\t")}" else "")
     }
 }

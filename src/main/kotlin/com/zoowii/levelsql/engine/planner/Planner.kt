@@ -88,12 +88,14 @@ abstract class LogicalPlanner(private val sess: DbSession) : Planner {
             return
         }
         val chunks = mutableListOf<Chunk>()
+        var hasSourceEnd = false
         for (childTask in childrenFetchTasks) {
             if (childTask.chunk != null) {
                 chunks.add(childTask.chunk!!)
                 continue
             }
             if (childTask.sourceEnd) {
+                hasSourceEnd = true
                 chunks.add(Chunk())
                 continue
             }
@@ -102,7 +104,12 @@ abstract class LogicalPlanner(private val sess: DbSession) : Planner {
                 return
             }
         }
-        fetchTask.submitChunk(Chunk.mergeChunks(chunks))
+        val mergedChunks = Chunk.mergeChunks(chunks)
+        if(mergedChunks.rows.isEmpty() && hasSourceEnd) {
+            fetchTask.submitSourceEnd()
+            return
+        }
+        fetchTask.submitChunk(mergedChunks)
     }
 
     private val executeChildPlannerTimeoutSeconds: Long = 10

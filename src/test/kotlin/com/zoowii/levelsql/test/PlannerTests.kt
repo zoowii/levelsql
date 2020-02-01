@@ -68,4 +68,13 @@ class PlannerTests {
         val sql1 = "select name, age, * from employee where id > 3 limit 1,2"
         engine.executeSQL(session, sql1)
     }
+
+    @Test fun testInsertSqlLogicalPlanner() {
+        val engine = LevelSqlEngine(store!!)
+        engine.loadMeta()
+        val session = engine.createSession()
+        session.useDb("test")
+        val sql1 = "insert into employee (id, name, age) values (1, 'zhang1', 21), (2, 'zhang2', 22), (3, 'zhang3', 23)"
+        engine.executeSQL(session, sql1)
+    }
 }

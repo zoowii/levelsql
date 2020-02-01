@@ -1,7 +1,7 @@
-package com.zoowii.levelsql.sql
+package com.zoowii.levelsql.engine.planner
 
 import com.zoowii.levelsql.engine.DbSession
-import com.zoowii.levelsql.engine.planner.*
+import com.zoowii.levelsql.sql.ast.InsertStatement
 import com.zoowii.levelsql.sql.ast.SelectStatement
 import com.zoowii.levelsql.sql.ast.Statement
 import java.sql.SQLException
@@ -93,6 +93,10 @@ object PlannerBuilder {
                 }
 
                 return projection
+            }
+            InsertStatement::class.java -> {
+                stmt as InsertStatement
+                return InsertPlanner(session, stmt.tblName, stmt.columns, stmt.rows)
             }
             // TODO: 其他SQL AST节点类型
             else -> {

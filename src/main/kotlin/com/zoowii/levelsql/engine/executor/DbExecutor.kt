@@ -46,7 +46,7 @@ class DbExecutor {
                 } catch (e: Exception) {
                     throw e
                 }
-                if (fetchFuture.isDone) {
+                if (!fetchFuture.isDone) {
                     break
                 }
                 if (fetchTask.sourceEnd) {

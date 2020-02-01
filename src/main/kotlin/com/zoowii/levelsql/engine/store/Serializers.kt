@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.store
 
 import com.google.common.primitives.Ints
+import com.google.common.primitives.Longs
 import com.zoowii.levelsql.engine.exceptions.SerializeException
 import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import java.io.ByteArrayOutputStream
@@ -18,9 +19,19 @@ fun Int.toBytes(): ByteArray {
     return Ints.toByteArray(this)
 }
 
+fun Long.toBytes(): ByteArray {
+    // big-endian representation
+    return Longs.toByteArray(this)
+}
+
 fun Int32FromBytes(data: ByteArray): Pair<Int, ByteArray> {
     // big-endian representation
     return Pair(Ints.fromByteArray(data), data.copyOfRange(4, data.size))
+}
+
+fun Int64FromBytes(data: ByteArray): Pair<Long, ByteArray> {
+    // big-endian representation
+    return Pair(Longs.fromByteArray(data), data.copyOfRange(8, data.size))
 }
 
 fun String.toBytes(): ByteArray {
