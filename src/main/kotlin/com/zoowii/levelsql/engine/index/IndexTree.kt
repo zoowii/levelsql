@@ -625,6 +625,30 @@ data class IndexTree(val store: IStore, var indexUniqueName: String, var nodeByt
         return curNodeAndPos
     }
 
+    // 找到树中第一条记录
+    fun seekFirst(): IndexNodeValue? {
+        val usingMetanode = metaNode ?: return null
+        var curNodeId = usingMetanode.rootNodePosition.offset
+        var curNode: IndexNode
+        while (true) {
+            val nodeOption = getIndexNode(curNodeId) ?: return null
+            curNode = nodeOption
+            if (curNode.leaf) {
+                if(curNode.values.isEmpty()) {
+                    curNodeId = curNode.rightNodeId ?: return null
+                    continue
+                }
+                return IndexNodeValue(curNode, 0)
+            }
+            if (curNode.nodeKeys.isEmpty()) {
+                return null
+            }
+            assert(curNode.nodeKeys.isNotEmpty())
+            // 在索引节点中搜索满足condition的最左节点
+            curNodeId = curNode.subNodes[0].offset
+        }
+    }
+
     // TODO: seekByCondition和findIndex的逻辑合并
     // 条件搜索找到第一个满足condition(value)条件的record
     fun seekByCondition(condition: KeyCondition): IndexNodeValue? {

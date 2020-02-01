@@ -122,6 +122,18 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         return nodeAndPos.node.values[nodeAndPos.indexInNode]
     }
 
+    // 找到表中第一条数据
+    fun rawSeekFirst(): IndexNodeValue? {
+        return primaryIndex.tree.seekFirst()
+    }
+
+    fun rawNextRecord(pos: IndexNodeValue?): IndexNodeValue? {
+        if(pos==null) {
+            return null
+        }
+        return primaryIndex.tree.nextRecordPosition(pos)
+    }
+
     // raw find range by condition
     fun rawFind(condition: KeyCondition): List<IndexLeafNodeValue> {
         val first = primaryIndex.tree.seekByCondition(condition) ?: return listOf()

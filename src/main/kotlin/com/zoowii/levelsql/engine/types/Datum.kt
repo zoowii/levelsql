@@ -14,4 +14,15 @@ class Datum(val kind: DatumType) {
     var intValue: Long? = null
     var stringValue: String? = null
     var boolValue: Boolean? = null
+
+    override fun toString(): String {
+        return when(kind) {
+            DatumTypes.kindNull -> "null"
+            DatumTypes.kindInt64 -> intValue.toString()
+            DatumTypes.kindString -> stringValue.toString()
+            DatumTypes.kindText -> stringValue.toString()
+            DatumTypes.kindBool -> boolValue.toString()
+            else -> "not supported datum kind $kind"
+        }
+    }
 }
