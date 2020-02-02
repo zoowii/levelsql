@@ -3,6 +3,8 @@ package com.zoowii.levelsql.engine.types
 import com.zoowii.levelsql.engine.store.StoreSerializable
 import com.zoowii.levelsql.engine.store.toBytes
 import com.zoowii.levelsql.engine.utils.ByteArrayStream
+import com.zoowii.levelsql.engine.utils.compareBytes
+import com.zoowii.levelsql.engine.utils.compareNodeKey
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 
@@ -17,7 +19,7 @@ object DatumTypes {
 }
 
 class Datum(var kind: DatumType, var intValue: Long? = null, var stringValue: String? = null,
-            var boolValue: Boolean? = null) : StoreSerializable<Datum> {
+            var boolValue: Boolean? = null) : StoreSerializable<Datum>, Comparable<Datum?> {
 
     override fun toString(): String {
         return when(kind) {
@@ -72,5 +74,30 @@ class Datum(var kind: DatumType, var intValue: Long? = null, var stringValue: St
             else -> throw IOException("not supported datum kind $kind fromBytes")
         }
         return this
+    }
+
+    override fun compareTo(other: Datum?): Int {
+        if(other==null) {
+            return 1
+        }
+        if(kind != other.kind) {
+            return kind - other.kind
+        }
+        return when(kind) {
+            DatumTypes.kindNull -> 0
+            DatumTypes.kindInt64 -> {
+                (intValue!! - other.intValue!!).toInt()
+            }
+            DatumTypes.kindString -> {
+                stringValue!!.compareTo(other.stringValue!!)
+            }
+            DatumTypes.kindText -> {
+                stringValue!!.compareTo(other.stringValue!!)
+            }
+            DatumTypes.kindBool -> {
+                boolValue!!.compareTo(other.boolValue!!)
+            }
+            else -> compareBytes(this.toBytes(), other.toBytes())
+        }
     }
 }

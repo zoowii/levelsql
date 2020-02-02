@@ -254,7 +254,7 @@ class IndexSelectPlanner(private val sess: DbSession, val tblName: String, val i
 
     override fun afterChildrenTasksSubmitted(fetchTask: FetchTask,
                                              childrenFetchFutures: List<Future<FetchTask>>) {
-
+        // TODO
     }
 
     override fun afterChildrenTasksDone(fetchTask: FetchTask,
@@ -304,22 +304,46 @@ class ProjectionPlanner(private val sess: DbSession, val columns: List<String>) 
     }
 
     override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
-        // TODO
+
     }
 
     override fun afterChildrenTasksSubmitted(fetchTask: FetchTask,
                                              childrenFetchFutures: List<Future<FetchTask>>) {
-        // TODO
+
     }
 
     override fun afterChildrenTasksDone(fetchTask: FetchTask,
                                         childrenFetchTasks: List<FetchTask>) {
-        // TODO
-        simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+        if (fetchTask.isEnd()) {
+            return
+        }
+        val (mergedChunk, hasSourceEnd, error) = mergeChildrenChunks(childrenFetchTasks)
+        if (error != null) {
+            fetchTask.submitError(error)
+            return
+        }
+        if (mergedChunk.rows.isEmpty() && hasSourceEnd) {
+            fetchTask.submitSourceEnd()
+            return
+        }
+        assert(children.isNotEmpty())
+        val childrenOutputNames = children[0].getOutputNames()
+        val outputNames = getOutputNames()
+        // 对输入数据(来自children的输出)做projection
+        val projectionRows = mergedChunk.rows.map {
+            val row = it
+            val mappedRow = Row()
+            mappedRow.data = outputNames.map {
+                val colName = it
+                row.getItem(childrenOutputNames, colName)
+            }
+            mappedRow
+        }
+        fetchTask.submitChunk(Chunk().replaceRows(projectionRows))
     }
 
     override fun setSelfOutputNames() {
-        // TODO: 如果不包含*，则output names是选择的列，如果包含*，则是选择的列 + children[0]（如果children非空）的各列
+        // 如果不包含*，则output names是选择的列，如果包含*，则是选择的列 + children[0]（如果children非空）的各列
         if (!columns.contains("*")) {
             setOutputNames(columns)
             return
@@ -367,12 +391,12 @@ class FilterPlanner(private val sess: DbSession, val cond: CondExpr) : LogicalPl
     }
 
     override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
-        // TODO
+
     }
 
     override fun afterChildrenTasksSubmitted(fetchTask: FetchTask,
                                              childrenFetchFutures: List<Future<FetchTask>>) {
-        // TODO
+
     }
 
     override fun afterChildrenTasksDone(fetchTask: FetchTask,
@@ -419,10 +443,53 @@ class OrderByPlanner(private val sess: DbSession, val column: String, val asc: B
         // TODO
     }
 
+    private val fetchedAllRowsChunk: Chunk = Chunk()
+
+    private var fileSortFinished = false
+
     override fun afterChildrenTasksDone(fetchTask: FetchTask,
                                         childrenFetchTasks: List<FetchTask>) {
-        // TODO
-        simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+        // TODO: 如果下方来源是从索引来的数据（ordered chunk)则不再排序，否则应该持续取到所有数据后内存中排序
+        if (fetchTask.isEnd()) {
+            return
+        }
+        val isInputSortedAndSameSortWithSelf = false // 是否输入数据是排序好的并且排序方式和本sort planner一致。比如下方数据来自索引查询时
+        if (isInputSortedAndSameSortWithSelf) {
+            simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+            return
+        }
+        val (mergedChunk, hasSourceEnd, error) = mergeChildrenChunks(childrenFetchTasks)
+        if (error != null) {
+            fetchTask.submitError(error)
+            return
+        }
+        if (mergedChunk.rows.isNotEmpty() || !hasSourceEnd) {
+            // children还没输出完，需要累计起来
+            fetchedAllRowsChunk.rows.addAll(mergedChunk.rows)
+            fetchTask.submitChunk(Chunk()) // 暂时先输出一个空chunk
+            return
+        }
+        if (fileSortFinished) {
+            fetchTask.submitSourceEnd()
+            return
+        }
+        assert(children.isNotEmpty())
+        val childrenOutputNames = children[0].getOutputNames()
+        // 对输入数据(来自children的输出)做排序
+
+        val originRows = fetchedAllRowsChunk.rows
+        val sortFun = { row: Row ->
+            val orderColumnValue = row.getItem(childrenOutputNames, column)
+            orderColumnValue
+        }
+        val sortedRows: List<Row>
+        if (asc) {
+            sortedRows = originRows.sortedBy(sortFun)
+        } else {
+            sortedRows = originRows.sortedByDescending(sortFun)
+        }
+        fetchTask.submitChunk(Chunk().replaceRows(sortedRows))
+        fileSortFinished = true
     }
 
     override fun setSelfOutputNames() {

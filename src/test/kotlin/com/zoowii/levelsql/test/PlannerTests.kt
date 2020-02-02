@@ -89,7 +89,7 @@ class PlannerTests {
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
-        val sql1 = "select name, age, * from employee where id > 1 limit 1,2"
+        val sql1 = "select name, age, * from employee where id > 1 order by id desc limit 1,2"
         engine.executeSQL(session, sql1)
     }
 

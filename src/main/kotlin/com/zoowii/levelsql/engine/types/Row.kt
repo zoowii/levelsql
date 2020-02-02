@@ -38,7 +38,7 @@ class Row : StoreSerializable<Row> {
 
     fun getItem(headerNames: List<String>, name: String): Datum {
         val idx = headerNames.indexOf(name)
-        if(idx < 0) {
+        if(idx < 0 || idx >= data.size) {
             return Datum(DatumTypes.kindNull)
         }
         return data[idx]
