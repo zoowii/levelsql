@@ -138,10 +138,54 @@ object PlannerBuilder {
         }
     }
 
+    fun afterPlannerOptimised(session: DbSession, planner: LogicalPlanner) {
+        planner.setTreeOutputNames()
+    }
+
     // 对逻辑计划进行优化
-    fun optimiseLogicalPlanner(planner: LogicalPlanner): LogicalPlanner {
+    fun optimiseLogicalPlanner(session: DbSession, planner: LogicalPlanner): LogicalPlanner {
         // TODO
         // TODO: 对应filter条件能用索引的，用IndexSelectPlanner修改下层的select planner
-        return planner
+
+        val onlyOptimiseChildren = { ->
+            for(i in 0 until planner.children.size) {
+                val child = planner.children[i]
+                planner.setChild(i, optimiseLogicalPlanner(session, child))
+            }
+            planner
+        }
+
+        when(planner.javaClass) {
+            FilterPlanner::class.java -> {
+                planner as FilterPlanner
+                // 获取filter planner用到的所有table.column
+                val filterColumns = planner.cond.usingColumns()
+                val db = session.db ?: throw SQLException("please use one database first")
+                if(planner.children.size==1) {
+                    // 为简化实现，暂时只对只检索一个表的情况做索引优化
+                    for (i in 0 until planner.children.size) {
+                        val child = planner.children[i]
+                        // 判断filter下方是否是select表，并且filter的字段能使用到select的表中的索引，如果是，则可以优化为索引访问
+                        if (child.javaClass == SelectPlanner::class.java) {
+                            child as SelectPlanner
+                            val table = db.openTable(child.tblName)
+                            val index = table.findIndexByColumns(filterColumns) ?: continue
+                            // 为简化实现，暂时只先处理使用主键索引的情况
+                            // TODO: 如果用了二级索引，输出的列不够祖先planner使用的（查看最顶层planner的outputNames），则需要做回表
+                            if(!index.primary)
+                                continue
+                            val sortAsc = true // TODO: 需要从上级planner中搜集到各列要求索引检索的排序顺序, 暂时索引检索只用增序
+                            val indexPlanner = IndexSelectPlanner(session, table.tblName, index.indexName, sortAsc, planner.cond)
+                            indexPlanner.children = child.children
+                            planner.setChild(i, indexPlanner)
+                        }
+                    }
+                }
+            }
+            else -> {
+                return onlyOptimiseChildren()
+            }
+        }
+        return onlyOptimiseChildren()
     }
 }

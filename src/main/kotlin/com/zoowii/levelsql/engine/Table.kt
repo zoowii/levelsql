@@ -10,6 +10,7 @@ import com.zoowii.levelsql.engine.store.RowId
 import com.zoowii.levelsql.engine.store.toBytes
 import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import com.zoowii.levelsql.engine.utils.KeyCondition
+import com.zoowii.levelsql.sql.ast.ColumnHintInfo
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicLong
@@ -72,6 +73,24 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         return secondaryIndexes.any { it.indexName == indexName }
     }
 
+    // 根据使用的列(table.column的列表)找到满足条件的索引
+    fun findIndexByColumns(columnHints: List<ColumnHintInfo>): Index? {
+        if(columnHints.isEmpty())
+            return null
+        // 找到使用的列中适用于本表的列
+        val maybeSelfTableColumns = columnHints.filter { it.tblName==null || it.tblName == tblName }
+                .map { it.column }
+        val allIndexes = listOf(primaryIndex) + secondaryIndexes
+        for(index in allIndexes) {
+            assert(index.columns.isNotEmpty())
+            val indexFirstColumn = index.columns[0] // 目前只使用索引的第一列
+            if(maybeSelfTableColumns.contains(indexFirstColumn)) {
+                return index
+            }
+        }
+        return null
+    }
+
     fun openIndex(indexName: String): Index? {
         if (primaryIndex.indexName == indexName) {
             return primaryIndex
@@ -103,7 +122,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
     fun rawInsert(key: ByteArray, record: ByteArray) {
         val nextRowId = nextRowId()
         primaryIndex.tree.addKeyValue(IndexLeafNodeValue(nextRowId, key, record))
-        // TODO: 二级索引也需要修改记录
+        // TODO: 二级索引也需要插入记录
     }
 
     fun rawUpdate(rowId: RowId, key: ByteArray, record: ByteArray) {

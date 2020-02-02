@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.sql.ast
 
 import com.zoowii.levelsql.sql.scanner.Token
+import com.zoowii.levelsql.sql.scanner.TokenTypes
 
 interface Statement {
 }
@@ -48,17 +49,33 @@ class InsertStatement(val line: Int, val tblName: String, val columns: List<Stri
     }
 }
 
-interface CondExpr : Statement {
+class ColumnHintInfo(val tblName: String?, val column: String) {
+}
 
+interface CondExpr : Statement {
+    // 表达式中用到了哪些列
+    fun usingColumns(): List<ColumnHintInfo>
 }
 
 class TokenExpr(val token: Token) : CondExpr {
+    override fun usingColumns(): List<ColumnHintInfo> {
+        if(token.t == TokenTypes.tkName) {
+            return listOf(ColumnHintInfo(null, token.s))
+        } else {
+            return listOf()
+        }
+    }
+
     override fun toString(): String {
         return token.toString()
     }
 }
 
 class BinOpExpr(val op: Token, val left: CondExpr, val right: CondExpr) : CondExpr {
+    override fun usingColumns(): List<ColumnHintInfo> {
+        return left.usingColumns() + right.usingColumns()
+    }
+
     override fun toString(): String {
         return "$left $op $right"
     }

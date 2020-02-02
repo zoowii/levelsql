@@ -1,5 +1,10 @@
 package com.zoowii.levelsql.engine.utils
 
+import com.zoowii.levelsql.engine.types.Datum
+import com.zoowii.levelsql.sql.scanner.Token
+import com.zoowii.levelsql.sql.scanner.TokenTypes
+import java.sql.SQLException
+
 /**
  * 比较key值的条件，用于select算子的范围筛选
  */
@@ -10,6 +15,43 @@ interface KeyCondition {
     fun acceptRange(begin: ByteArray?, end: ByteArray?): Boolean // 是否能接受[begin, end)范围内的值。begin/end为null表示无限小/无限大
     fun acceptLesserKey(): Boolean // 是否可能接受比满足条件的值更小的值（比如<或者<=条件)
     fun acceptGreaterKey(): Boolean // 是否可能接受比满足条件的值更大的值（比如>或者>=条件)
+
+    companion object {
+        fun createFromBinExpr(op: Token, rightValue: Datum): KeyCondition {
+            val rightValueData = rightValue.toBytes()
+            return when(op.t) {
+                '>'.toInt() -> {
+                    GreatThanKeyCondition(rightValueData)
+                }
+                '<'.toInt() -> {
+                    LessThanKeyCondition(rightValueData)
+                }
+                '='.toInt() -> {
+                    EqualKeyCondition(rightValueData)
+                }
+                // TODO: 其他其中运算符的KeyCondition也要支持
+                TokenTypes.tkGe -> {
+                    // >=
+                    throw SQLException("not supported op $op in sql filter sub query")
+                }
+                TokenTypes.tkLe -> {
+                    // <=
+                    throw SQLException("not supported op $op in sql filter sub query")
+                }
+                TokenTypes.tkNe -> {
+                    // !=
+                    throw SQLException("not supported op $op in sql filter sub query")
+                }
+                TokenTypes.tkGL -> {
+                    // <>
+                    throw SQLException("not supported op $op in sql filter sub query")
+                }
+                else -> {
+                    throw SQLException("not supported op $op in sql filter sub query")
+                }
+            }
+        }
+    }
 }
 
 class EqualKeyCondition(val rightValue: ByteArray) : KeyCondition {

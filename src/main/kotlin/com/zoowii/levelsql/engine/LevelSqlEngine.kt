@@ -99,9 +99,12 @@ class LevelSqlEngine(val store: IStore) {
         val stmts = parser.getStatements()
         // 把stmts各SQL语句依次转成planner交给executor处理
         for (stmt in stmts) {
-            val logicalPlanner = PlannerBuilder.sqlNodeToPlanner(session, stmt)
-            log.debug("logical planner:\n$logicalPlanner")
-            // TODO: optimize, to physical planner, physical planner optimize
+            var logicalPlanner = PlannerBuilder.sqlNodeToPlanner(session, stmt)
+            log.debug("logical planner before optimise:\n$logicalPlanner")
+            logicalPlanner = PlannerBuilder.optimiseLogicalPlanner(session, logicalPlanner)
+            PlannerBuilder.afterPlannerOptimised(session, logicalPlanner)
+            log.debug("logical planner optimised:\n$logicalPlanner")
+            // TODO: physical planner optimize
             // use executor to execute planner
             val chunk = dbExecutor.executePlanner(logicalPlanner)
             log.debug("result:\n${logicalPlanner.getOutputNames().joinToString("\t")}\n${chunk.rows.joinToString("\n")}")

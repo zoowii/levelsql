@@ -89,6 +89,16 @@ class PlannerTests {
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
+        val sql1 = "select name, age, * from employee where id > 1 order by age desc limit 1,2"
+        engine.executeSQL(session, sql1)
+    }
+
+    @Test
+    fun testSimpleSelectByIndexLogicalPlanner() {
+        val engine = LevelSqlEngine(store!!)
+        engine.loadMeta()
+        val session = engine.createSession()
+        session.useDb("test")
         val sql1 = "select name, age, * from employee where id > 1 order by id desc limit 1,2"
         engine.executeSQL(session, sql1)
     }
