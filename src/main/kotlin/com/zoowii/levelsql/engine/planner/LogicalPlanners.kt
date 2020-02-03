@@ -637,6 +637,7 @@ class LimitPlanner(private val sess: DbSession, val offset: Long, val limit: Lon
         }
         if (childTask.sourceEnd) {
             fetchTask.submitSourceEnd()
+            return
         }
         val childChunk = childTask.chunk!!
 
