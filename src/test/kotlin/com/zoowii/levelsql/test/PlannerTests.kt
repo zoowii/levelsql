@@ -127,4 +127,13 @@ class PlannerTests {
         val sql1 = "select * from employee, person"
         engine.executeSQL(session, sql1)
     }
+
+    @Test fun testLimitSqlLogicalPlanner() {
+        val engine = LevelSqlEngine(store!!)
+        engine.loadMeta()
+        val session = engine.createSession()
+        session.useDb("test")
+        val sql1 = "select * from employee, person limit 2,2"
+        engine.executeSQL(session, sql1)
+    }
 }

@@ -502,7 +502,7 @@ class FilterPlanner(private val sess: DbSession, val cond: CondExpr) : LogicalPl
     }
 }
 
-// 按条件过滤的planner
+// 排序的planner
 class OrderByPlanner(private val sess: DbSession, val column: String, val asc: Boolean) : LogicalPlanner(sess) {
     private val log = logger()
 
@@ -511,12 +511,12 @@ class OrderByPlanner(private val sess: DbSession, val column: String, val asc: B
     }
 
     override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
-        // TODO
+
     }
 
     override fun afterChildrenTasksSubmitted(fetchTask: FetchTask,
                                              childrenFetchFutures: List<Future<FetchTask>>) {
-        // TODO
+
     }
 
     private val fetchedAllRowsChunk: Chunk = Chunk()
@@ -609,18 +609,57 @@ class LimitPlanner(private val sess: DbSession, val offset: Long, val limit: Lon
     }
 
     override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
-        // TODO
+
     }
 
     override fun afterChildrenTasksSubmitted(fetchTask: FetchTask,
                                              childrenFetchFutures: List<Future<FetchTask>>) {
-        // TODO
+
     }
+
+    private var skippedCount: Long = 0 // 把输入跳过的记录行数
+    private var outputRowsCount: Long = 0 // 对上层输出的记录行数
 
     override fun afterChildrenTasksDone(fetchTask: FetchTask,
                                         childrenFetchTasks: List<FetchTask>) {
-        // TODO
-        simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+        assert(children.size == 1)
+        if (fetchTask.isEnd()) {
+            return
+        }
+        if (outputRowsCount >= limit) {
+            fetchTask.submitSourceEnd()
+            return
+        }
+        val childTask = childrenFetchTasks[0]
+        if (childTask.error != null) {
+            fetchTask.submitError(childTask.error!!)
+            return
+        }
+        if (childTask.sourceEnd) {
+            fetchTask.submitSourceEnd()
+        }
+        val childChunk = childTask.chunk!!
+
+        if (childChunk.rows.size + skippedCount <= offset) {
+            skippedCount += childChunk.rows.size
+            fetchTask.submitChunk(Chunk())
+            return
+        }
+        var remainingRows: List<Row>
+        if (skippedCount < offset) {
+            // 需要在childChunk中跳过部分行，剩下的行需要输出
+            remainingRows = childChunk.rows.subList((offset - skippedCount).toInt(), childChunk.rows.size)
+            skippedCount = offset
+        } else {
+            remainingRows = childChunk.rows
+        }
+        if (remainingRows.size >= (limit - outputRowsCount)) {
+            // 来做child的输入超过剩余需要输出的行数，需要裁减掉超过的部分
+            remainingRows = remainingRows.subList(0, (limit - outputRowsCount).toInt())
+        }
+
+        fetchTask.submitChunk(Chunk().replaceRows(remainingRows))
+        outputRowsCount += remainingRows.size
     }
 
     override fun setSelfOutputNames() {
@@ -674,7 +713,7 @@ class ProductPlanner(private val sess: DbSession) : LogicalPlanner(sess) {
         if (fetchTask.isEnd()) {
             return
         }
-        if(evaluated) {
+        if (evaluated) {
             fetchTask.submitSourceEnd()
             return
         }
