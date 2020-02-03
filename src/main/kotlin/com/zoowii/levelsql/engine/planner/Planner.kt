@@ -4,12 +4,15 @@ import com.zoowii.levelsql.engine.DbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.types.Chunk
 import java.lang.Exception
-import java.sql.SQLException
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
+/**
+ * 目前数据库计算引擎用的火山模型
+ */
+
+// 执行计划中的算子的接口
 interface Planner : Runnable {
     // 本次执行的db session
     fun getSession(): DbSession

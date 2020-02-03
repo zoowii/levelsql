@@ -109,7 +109,22 @@ class PlannerTests {
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
-        val sql1 = "insert into employee (id, name, age) values (1, 'zhang1', 21), (2, 'zhang2', 22), (3, 'zhang3', 23)"
+        run {
+            val sql = "insert into employee (id, name, age, country_id) values (1, 'zhang1', 21, 1), (2, 'zhang2', 22, 2), (3, 'zhang3', 23, 1)"
+            engine.executeSQL(session, sql)
+        }
+        run {
+            val sql = "insert into person (id, name) values (1, 'person-1'), (2, 'person-2'), (3, 'person-3')"
+            engine.executeSQL(session, sql)
+        }
+    }
+
+    @Test fun testProductSqlLogicalPlanner() {
+        val engine = LevelSqlEngine(store!!)
+        engine.loadMeta()
+        val session = engine.createSession()
+        session.useDb("test")
+        val sql1 = "select * from employee, person"
         engine.executeSQL(session, sql1)
     }
 }
