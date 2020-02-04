@@ -187,8 +187,6 @@ class SqlParser(private val source: String, private val reader: InputStream) {
     private fun checkExpr(): Expr {
         // 各操作符的优先级
         val opPriorities = hashMapOf(
-                Pair(TokenTypes.tkAnd, 11),
-                Pair(TokenTypes.tkOr, 11),
                 Pair('*'.toInt(), 10),
                 Pair('/'.toInt(), 10),
                 Pair('%'.toInt(), 10),
@@ -200,7 +198,9 @@ class SqlParser(private val source: String, private val reader: InputStream) {
                 Pair(TokenTypes.tkNe, 7),
                 Pair(TokenTypes.tkGL, 7),
                 Pair(TokenTypes.tkGe, 7),
-                Pair(TokenTypes.tkLe, 7)
+                Pair(TokenTypes.tkLe, 7),
+                Pair(TokenTypes.tkAnd, 1),
+                Pair(TokenTypes.tkOr, 1)
         )
         val opsStack = mutableListOf<Expr?>() // 保存未完成的表达式的操作符的栈, 其中某项为null表示这项是 '('
         val suffixStack = mutableListOf<Expr>() // 中缀表达式对应的后缀表达式
@@ -215,6 +215,7 @@ class SqlParser(private val source: String, private val reader: InputStream) {
                 token.isLiteralValue() -> {
                     suffixStack.add(TokenExpr(checkToken()))
                 }
+                // TODO: 对 * 的处理, * 既可以是乘法，也可以是 select *, count(*)等
                 token.isBinExprOperatorToken() -> {
                     val opToken = checkToken()
                     var added = false
@@ -227,26 +228,28 @@ class SqlParser(private val source: String, private val reader: InputStream) {
                             // 遇到一个左括号。左括号有最高优先级
                             lastOpPriority = Int.MAX_VALUE
                         } else {
-                            if (lastOp.javaClass != TokenExpr::class.java)
+                            if (lastOp.javaClass != ExprOp::class.java)
                                 throw SqlParseException("invalid expr $token")
-                            lastOp as TokenExpr
-                            lastOpPriority = opPriorities[lastOp.token.t]!!
+                            lastOp as ExprOp
+                            lastOpPriority = opPriorities[lastOp.opToken.t]!!
                         }
                         if (opPriority > lastOpPriority) {
                             // 新操作符优先级比之前的优先级高，压入操作符栈优先处理
-                            opsStack.add(TokenExpr(opToken))
+                            opsStack.add(ExprOp(opToken))
                             added = true
                             break
                         } else {
-                            popFromList(opsStack)
-                            if(lastOp != null) {
+                            if(lastOp!=null) {
+                                popFromList(opsStack)
                                 suffixStack.add(lastOp)
+                            } else {
+                                break
                             }
                         }
                     }
                     // 没有操作符了，相当于新操作符大于上一个操作符的优先级
                     if(!added) {
-                        opsStack.add(TokenExpr(opToken))
+                        opsStack.add(ExprOp(opToken))
                     }
                 }
                 token.t == '('.toInt() -> {
@@ -285,15 +288,15 @@ class SqlParser(private val source: String, private val reader: InputStream) {
         while(suffixStack.isNotEmpty()) {
             val item = unshiftFromList(suffixStack) // 当成前缀表达式来处理
             // 目前 item都是TokenExpr，因为还没有符合项比如 a.b, func(a)
-            item as TokenExpr
             when {
-                item.token.isBinExprOperatorToken() -> {
+                item.javaClass==ExprOp::class.java && (item as ExprOp).opToken.isBinExprOperatorToken() -> {
+                    item as ExprOp
                     if(exprsStack.size<2) {
-                        throw SqlParseException("invalid expr ${item.token}")
+                        throw SqlParseException("invalid expr $item")
                     }
                     val right = popFromList(exprsStack)
                     val left = popFromList(exprsStack)
-                    exprsStack.add(BinOpExpr(item.token, left, right))
+                    exprsStack.add(BinOpExpr(item, left, right))
                 }
                 else -> {
                     // 操作数
@@ -302,7 +305,7 @@ class SqlParser(private val source: String, private val reader: InputStream) {
             }
         }
 
-        if(exprsStack.size!=1 || (exprsStack.isNotEmpty() && exprsStack[0]==null))
+        if(exprsStack.size!=1)
             throw SqlParseException("invalid expr ${currentToken()}")
         return exprsStack[0]
     }

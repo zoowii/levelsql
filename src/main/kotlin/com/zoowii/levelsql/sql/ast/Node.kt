@@ -2,6 +2,7 @@ package com.zoowii.levelsql.sql.ast
 
 import com.zoowii.levelsql.sql.scanner.Token
 import com.zoowii.levelsql.sql.scanner.TokenTypes
+import java.lang.StringBuilder
 
 interface Node {
 }
@@ -58,6 +59,15 @@ interface Expr : Node {
     // TODO: 把Row的eval方法放入这里
 }
 
+class ExprOp(val opToken: Token) : Expr {
+    override fun usingColumns(): List<ColumnHintInfo> {
+        return listOf()
+    }
+    override fun toString(): String {
+        return opToken.toString()
+    }
+}
+
 class TokenExpr(val token: Token) : Expr {
     override fun usingColumns(): List<ColumnHintInfo> {
         if(token.t == TokenTypes.tkName) {
@@ -72,13 +82,25 @@ class TokenExpr(val token: Token) : Expr {
     }
 }
 
-class BinOpExpr(val op: Token, val left: Expr, val right: Expr) : Expr {
+class BinOpExpr(val op: ExprOp, val left: Expr, val right: Expr) : Expr {
     override fun usingColumns(): List<ColumnHintInfo> {
         return left.usingColumns() + right.usingColumns()
     }
 
     override fun toString(): String {
-        return "$left $op $right"
+        val builder = StringBuilder()
+        if(left.javaClass == BinOpExpr::class.java) {
+            builder.append("($left) ")
+        } else {
+            builder.append("$left ")
+        }
+        builder.append(op.toString())
+        if(right.javaClass == BinOpExpr::class.java) {
+            builder.append("($right)")
+        } else {
+            builder.append("$right")
+        }
+        return builder.toString()
     }
 }
 

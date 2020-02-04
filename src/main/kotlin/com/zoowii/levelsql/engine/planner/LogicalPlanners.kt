@@ -294,7 +294,7 @@ class IndexSelectPlanner(private val sess: DbSession, val tblName: String, val i
         }
         // TODO: filterRightValue要和index的key的结构一起得到真正的树中的key值。比如如果是联合索引，需要合并。如果是二级索引且key是字符串，需要裁减长度为固定长度
         val filterRightValue = filterCondRightExpr.getLiteralDatumValue()
-        val keyCondition = KeyCondition.createFromBinExpr(filterCondOp, filterRightValue)
+        val keyCondition = KeyCondition.createFromBinExpr(filterCondOp.opToken, filterRightValue)
         if (seekedPos == null) {
             seekedPos = index.tree.seekByCondition(keyCondition)
         } else {

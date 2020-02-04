@@ -53,7 +53,7 @@ class Row : StoreSerializable<Row> {
                 val rightValue = this.calculateExpr(expr.right, headerNames)
                 val op = expr.op
                 // TODO: 为了简化实现，数值计算目前只接受整数
-                when(op.t) {
+                when(op.opToken.t) {
                     '>'.toInt() -> {
                         if(leftValue.kind != DatumTypes.kindInt64
                                 || rightValue.kind != DatumTypes.kindInt64) {
