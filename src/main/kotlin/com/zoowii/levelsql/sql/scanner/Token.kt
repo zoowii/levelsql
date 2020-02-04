@@ -110,6 +110,21 @@ class Token(var t: Rune, var i: Long?=null, var n: BigDecimal?=null, var s: Stri
                 TokenTypes.tkTrue, TokenTypes.tkFalse).contains(t)
     }
 
+    // 是否是二元表达式的运算符号
+    fun isBinExprOperatorToken(): Boolean {
+        val singleOps = listOf('+','-','*','/','%','=', '>', '<')
+        for(op in singleOps) {
+            if(t == op.toInt())
+                return true
+        }
+        val otherOps = listOf(TokenTypes.tkGe, TokenTypes.tkLe, TokenTypes.tkNe, TokenTypes.tkGL, TokenTypes.tkAnd, TokenTypes.tkOr)
+        for(op in otherOps) {
+            if(t == op)
+                return true
+        }
+        return false
+    }
+
     fun getLiteralDatumValue(): Datum {
         return when(t) {
             TokenTypes.tkNull -> Datum(DatumTypes.kindNull)

@@ -4,7 +4,7 @@ import com.zoowii.levelsql.engine.store.StoreSerializable
 import com.zoowii.levelsql.engine.store.toBytes
 import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import com.zoowii.levelsql.sql.ast.BinOpExpr
-import com.zoowii.levelsql.sql.ast.CondExpr
+import com.zoowii.levelsql.sql.ast.Expr
 import com.zoowii.levelsql.sql.ast.TokenExpr
 import com.zoowii.levelsql.sql.scanner.TokenTypes
 import java.io.ByteArrayOutputStream
@@ -45,7 +45,7 @@ class Row : StoreSerializable<Row> {
     }
 
     // 计算本row应用到表达式{expr}后计算得到的值, @param headerNames 是本row各数据对应的header name
-    fun calculateExpr(expr: CondExpr, headerNames: List<String>): Datum {
+    fun calculateExpr(expr: Expr, headerNames: List<String>): Datum {
         when(expr.javaClass) {
             BinOpExpr::class.java -> {
                 expr as BinOpExpr
@@ -117,7 +117,7 @@ class Row : StoreSerializable<Row> {
     }
 
     // 本row是否满足条件表达式{cond}, @param headerNames 是本row各数据对应的header name
-    fun matchCondExpr(cond: CondExpr, headerNames: List<String>): Boolean {
+    fun matchCondExpr(cond: Expr, headerNames: List<String>): Boolean {
         val exprValue = this.calculateExpr(cond, headerNames)
         return exprValue.kind == DatumTypes.kindBool && exprValue.boolValue!!
     }

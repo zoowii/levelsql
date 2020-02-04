@@ -6,14 +6,12 @@ import com.zoowii.levelsql.engine.exceptions.DbException
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.index.IndexNodeValue
 import com.zoowii.levelsql.engine.types.Chunk
-import com.zoowii.levelsql.engine.types.Datum
-import com.zoowii.levelsql.engine.types.DatumTypes
 import com.zoowii.levelsql.engine.types.Row
 import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import com.zoowii.levelsql.engine.utils.KeyCondition
 import com.zoowii.levelsql.engine.utils.logger
 import com.zoowii.levelsql.sql.ast.BinOpExpr
-import com.zoowii.levelsql.sql.ast.CondExpr
+import com.zoowii.levelsql.sql.ast.Expr
 import com.zoowii.levelsql.sql.ast.JoinSubQuery
 import com.zoowii.levelsql.sql.ast.TokenExpr
 import com.zoowii.levelsql.sql.scanner.Token
@@ -247,7 +245,7 @@ class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalP
 
 // 从索引中检索数据的planner
 class IndexSelectPlanner(private val sess: DbSession, val tblName: String, val indexName: String,
-                         val asc: Boolean, val filterCondExpr: CondExpr) : LogicalPlanner(sess) {
+                         val asc: Boolean, val filterCondExpr: Expr) : LogicalPlanner(sess) {
     private val log = logger()
 
     override fun toString(): String {
@@ -459,7 +457,7 @@ class JoinPlanner(private val sess: DbSession, val joinConditions: List<JoinSubQ
 }
 
 // 按条件过滤数据的planner
-class FilterPlanner(private val sess: DbSession, val cond: CondExpr) : LogicalPlanner(sess) {
+class FilterPlanner(private val sess: DbSession, val cond: Expr) : LogicalPlanner(sess) {
     override fun toString(): String {
         return "filter by $cond${childrenToString()}"
     }

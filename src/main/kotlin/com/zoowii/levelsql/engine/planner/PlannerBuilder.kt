@@ -7,7 +7,7 @@ import java.sql.SQLException
 
 // 把SQL AST转成planner树
 object PlannerBuilder {
-    fun sqlNodeToPlanner(session: DbSession, stmt: Statement): LogicalPlanner {
+    fun sqlNodeToPlanner(session: DbSession, stmt: Node): LogicalPlanner {
         when(stmt.javaClass) {
             SelectStatement::class.java -> {
                 /**

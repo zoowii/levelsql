@@ -113,7 +113,7 @@ class ParserTests {
 
     @Test fun testSelectSql() {
         val sql1 = "select name, age, * from employee, person left join country on employee.country_id=country.id " +
-                "where age >= 18 order by id desc group by age limit 10,20"
+                "where age >= 18 or (name != 'hello' and name != 'world') order by id desc group by age limit 10,20"
         val input1 = ByteArrayInputStream(sql1.toByteArray())
         val parser1 = SqlParser("test", input1)
         parser1.parse()
