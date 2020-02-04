@@ -159,7 +159,7 @@ class LimitSubQuery(val offset: Long, val limit: Long) : Node {
     }
 }
 
-class SelectStatement(val line: Int, val selectItems: List<Token>, val froms: List<String>, val joins: List<JoinSubQuery>,
+class SelectStatement(val line: Int, val selectItems: List<Expr>, val froms: List<String>, val joins: List<JoinSubQuery>,
                       val where: WhereSubQuery?, val orderBys: List<OrderBySubQuery>, val groupBys: List<GroupBySubQuery>,
                       val limit: LimitSubQuery?) : Node {
     override fun toString(): String {

@@ -7,16 +7,17 @@ import com.zoowii.levelsql.engine.Database
 import com.zoowii.levelsql.engine.LevelSqlEngine
 import com.zoowii.levelsql.engine.store.IStore
 import com.zoowii.levelsql.engine.store.LocalFileStore
-import org.junit.Before
 import org.junit.Test
 import java.io.File
 
 class PlannerTests {
     private var store: IStore? = null
 
-    @Before
-    fun beforeTests() {
+    private fun createSampleDb() {
         val localDbFile = File("./planner_tests_local")
+        if(localDbFile.exists()) {
+            localDbFile.deleteRecursively()
+        }
         store = LocalFileStore.openStore(localDbFile)
 
         val engine = LevelSqlEngine(store!!)
@@ -72,8 +73,9 @@ class PlannerTests {
         println("db saved $db")
     }
 
-    @Test
-    fun testSimpleSelectWithJoinLogicalPlanner() {
+    @Test fun testSimpleSelectWithJoinLogicalPlanner() {
+        createSampleDb()
+        insertSampleRecords()
         val engine = LevelSqlEngine(store!!)
         engine.loadMeta()
         val session = engine.createSession()
@@ -83,8 +85,9 @@ class PlannerTests {
         engine.executeSQL(session, sql1)
     }
 
-    @Test
-    fun testSimpleSelectLogicalPlanner() {
+    @Test fun testSimpleSelectLogicalPlanner() {
+        createSampleDb()
+        insertSampleRecords()
         val engine = LevelSqlEngine(store!!)
         engine.loadMeta()
         val session = engine.createSession()
@@ -93,8 +96,9 @@ class PlannerTests {
         engine.executeSQL(session, sql1)
     }
 
-    @Test
-    fun testSimpleSelectByIndexLogicalPlanner() {
+    @Test fun testSimpleSelectByIndexLogicalPlanner() {
+        createSampleDb()
+        insertSampleRecords()
         val engine = LevelSqlEngine(store!!)
         engine.loadMeta()
         val session = engine.createSession()
@@ -103,8 +107,23 @@ class PlannerTests {
         engine.executeSQL(session, sql1)
     }
 
-    @Test
-    fun testInsertSqlLogicalPlanner() {
+    private fun insertSampleRecords() {
+        val engine = LevelSqlEngine(store!!)
+        engine.loadMeta()
+        val session = engine.createSession()
+        session.useDb("test")
+        run {
+            val sql = "insert into employee (id, name, age, country_id) values (1, 'zhang1', 21, 1), (2, 'zhang2', 22, 2), (3, 'zhang3', 23, 1)"
+            engine.executeSQL(session, sql)
+        }
+        run {
+            val sql = "insert into person (id, name) values (1, 'person-1'), (2, 'person-2'), (3, 'person-3')"
+            engine.executeSQL(session, sql)
+        }
+    }
+
+    @Test fun testInsertSqlLogicalPlanner() {
+        createSampleDb()
         val engine = LevelSqlEngine(store!!)
         engine.loadMeta()
         val session = engine.createSession()
@@ -120,6 +139,8 @@ class PlannerTests {
     }
 
     @Test fun testProductSqlLogicalPlanner() {
+        createSampleDb()
+        insertSampleRecords()
         val engine = LevelSqlEngine(store!!)
         engine.loadMeta()
         val session = engine.createSession()
@@ -129,11 +150,24 @@ class PlannerTests {
     }
 
     @Test fun testLimitSqlLogicalPlanner() {
+        createSampleDb()
+        insertSampleRecords()
         val engine = LevelSqlEngine(store!!)
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
         val sql1 = "select * from employee, person limit 2,2"
+        engine.executeSQL(session, sql1)
+    }
+
+    @Test fun testAggregateSqlLogicalPlanner() {
+        createSampleDb()
+        insertSampleRecords()
+        val engine = LevelSqlEngine(store!!)
+        engine.loadMeta()
+        val session = engine.createSession()
+        session.useDb("test")
+        val sql1 = "select * from employee, person limit 2,2" // TODO: count(*), sum(age)之类聚合运算符
         engine.executeSQL(session, sql1)
     }
 }

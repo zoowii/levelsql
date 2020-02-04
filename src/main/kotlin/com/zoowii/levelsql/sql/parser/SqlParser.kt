@@ -204,27 +204,31 @@ class SqlParser(private val source: String, private val reader: InputStream) {
         )
         val opsStack = mutableListOf<Expr?>() // 保存未完成的表达式的操作符的栈, 其中某项为null表示这项是 '('
         val suffixStack = mutableListOf<Expr>() // 中缀表达式对应的后缀表达式
-        loop@ while(!scanner.eos()) {
+        loop@ while (!scanner.eos()) {
             val token = currentToken()
             when {
                 token.t == tkName -> {
-                    // TODO: 对于 a.b这类columnHint 以及 func(arg)这类函数调用信息，也要处理
+                    // TODO: 对于 a.b这类columnHint 以及 func(arg), count(1), count(*)这类函数调用信息，也要处理
                     suffixStack.add(TokenExpr(checkToken()))
                 }
-                // TODO: 当是select后的表达式的时候，表达式中可以是*号，但是只能少数几种简单形式，比如 *, a.*, count(*) 等
                 token.isLiteralValue() -> {
                     suffixStack.add(TokenExpr(checkToken()))
                 }
-                // TODO: 对 * 的处理, * 既可以是乘法，也可以是 select *, count(*)等
+                // 对 * 的处理, * 既可以是乘法，也可以是 select *, count(*)等
+                suffixStack.isEmpty() -> {
+                    // 当 * 前没有操作数的时候，作为类似 select * 中的 *而不是乘法
+                    suffixStack.add(TokenExpr(checkToken()))
+                }
+                // TODO: a.b as c 这类 as 表达式的处理
                 token.isBinExprOperatorToken() -> {
                     val opToken = checkToken()
                     var added = false
-                    while(opsStack.isNotEmpty()) {
+                    while (opsStack.isNotEmpty()) {
                         // 栈顶一定是操作符
                         val lastOp = opsStack.last()
                         val opPriority = opPriorities[opToken.t]!!
                         val lastOpPriority: Int
-                        if(lastOp == null) {
+                        if (lastOp == null) {
                             // 遇到一个左括号。左括号有最高优先级
                             lastOpPriority = Int.MAX_VALUE
                         } else {
@@ -239,7 +243,7 @@ class SqlParser(private val source: String, private val reader: InputStream) {
                             added = true
                             break
                         } else {
-                            if(lastOp!=null) {
+                            if (lastOp != null) {
                                 popFromList(opsStack)
                                 suffixStack.add(lastOp)
                             } else {
@@ -248,7 +252,7 @@ class SqlParser(private val source: String, private val reader: InputStream) {
                         }
                     }
                     // 没有操作符了，相当于新操作符大于上一个操作符的优先级
-                    if(!added) {
+                    if (!added) {
                         opsStack.add(ExprOp(opToken))
                     }
                 }
@@ -259,12 +263,12 @@ class SqlParser(private val source: String, private val reader: InputStream) {
                 token.t == ')'.toInt() -> {
                     next()
                     // 要求栈中上一个是一个值(非null)并且上上一个值是'(' (用null表示)
-                    if(opsStack.size<1) {
+                    if (opsStack.size < 1) {
                         throw SqlParseException("invalid expr $token")
                     }
-                    while(opsStack.isNotEmpty()) {
+                    while (opsStack.isNotEmpty()) {
                         val item = popFromList(opsStack)
-                        if(item==null) { // 遇到左括号了
+                        if (item == null) { // 遇到左括号了
                             break
                         }
                         suffixStack.add(item)
@@ -276,22 +280,22 @@ class SqlParser(private val source: String, private val reader: InputStream) {
             }
         }
         // 把剩下操作符依次弹出
-        while(opsStack.isNotEmpty()) {
+        while (opsStack.isNotEmpty()) {
             val item = popFromList(opsStack)
-            if(item==null) {
+            if (item == null) {
                 throw SqlParseException("invalid ( in sql")
             }
             suffixStack.add(item)
         }
         // 把suffixStack转成表达式树
         val exprsStack = mutableListOf<Expr>() // 构造表达式树过程中的操作树
-        while(suffixStack.isNotEmpty()) {
+        while (suffixStack.isNotEmpty()) {
             val item = unshiftFromList(suffixStack) // 当成前缀表达式来处理
             // 目前 item都是TokenExpr，因为还没有符合项比如 a.b, func(a)
             when {
-                item.javaClass==ExprOp::class.java && (item as ExprOp).opToken.isBinExprOperatorToken() -> {
+                item.javaClass == ExprOp::class.java && (item as ExprOp).opToken.isBinExprOperatorToken() -> {
                     item as ExprOp
-                    if(exprsStack.size<2) {
+                    if (exprsStack.size < 2) {
                         throw SqlParseException("invalid expr $item")
                     }
                     val right = popFromList(exprsStack)
@@ -305,7 +309,7 @@ class SqlParser(private val source: String, private val reader: InputStream) {
             }
         }
 
-        if(exprsStack.size!=1)
+        if (exprsStack.size != 1)
             throw SqlParseException("invalid expr ${currentToken()}")
         return exprsStack[0]
     }
@@ -334,9 +338,9 @@ class SqlParser(private val source: String, private val reader: InputStream) {
 
     private fun selectStatement(line: Int) {
         next()
-        val selectItems = mutableListOf<Token>()
+        val selectItems = mutableListOf<Expr>()
         while (!scanner.eos() && currentToken().t != tkFrom) {
-            val item = checkToken() // select子句暂时只支持单符号项，还不支持表达式比如 count(1), count(1) as c, age * 2
+            val item = checkExpr()
             selectItems += item
             if (!testNext(',')) {
                 break

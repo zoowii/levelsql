@@ -33,6 +33,7 @@ object PlannerBuilder {
                 stmt as SelectStatement
                 // TODO: 各planner的实例需要设置输出的各列名称
 
+                // TODO: 如果有聚合函数，需要增加聚合算子
                 // 目前没有聚合操作，顶层直接就是projection
                 val projection = ProjectionPlanner(session, stmt.selectItems.map { it.toString() })
                 var currentLevel: LogicalPlanner = projection
