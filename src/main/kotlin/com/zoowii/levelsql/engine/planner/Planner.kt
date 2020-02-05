@@ -4,6 +4,7 @@ import com.zoowii.levelsql.engine.DbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.types.Chunk
 import java.lang.Exception
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -62,7 +63,24 @@ abstract class LogicalPlanner(private val sess: DbSession) : Planner {
 
     override fun run() {
         while (!stopped.get()) {
-            Thread.sleep(10)
+            if(taskQueue.isEmpty()) {
+                Thread.sleep(10)
+                continue
+            }
+            val fetchTask = taskQueue.poll()
+            beforeChildrenTasksSubmit(fetchTask)
+            val childrenFetchFutures = submitFetchTaskToChildren()
+            afterChildrenTasksSubmitted(fetchTask, childrenFetchFutures)
+            val childrenFetchTasks = mutableListOf<FetchTask>()
+            for (childFuture in childrenFetchFutures) {
+                try {
+                    childrenFetchTasks.add(childFuture.get(executeChildPlannerTimeoutSeconds, TimeUnit.SECONDS))
+                } catch (e: Exception) {
+                    fetchTask.submitError(e.message!!)
+                    break
+                }
+            }
+            afterChildrenTasksDone(fetchTask, childrenFetchTasks)
         }
     }
 
@@ -126,23 +144,14 @@ abstract class LogicalPlanner(private val sess: DbSession) : Planner {
 
     private val executeChildPlannerTimeoutSeconds: Long = 10
 
+    private val taskQueue = ConcurrentLinkedQueue<FetchTask>()
+
     // 收到上级提交的FetchTask, 本身做处理，并且对children都产生新fetchTask提交给children
     override fun submitFetchTask(): Future<FetchTask> {
+        // 改成新建fetchTask先加入本算子的信箱，等本算子自身线程依次处理.
         val fetchTask = FetchTask()
+        taskQueue.add(fetchTask)
         val fetchFuture = fetchTask.waitFuture()
-        beforeChildrenTasksSubmit(fetchTask)
-        val childrenFetchFutures = submitFetchTaskToChildren()
-        afterChildrenTasksSubmitted(fetchTask, childrenFetchFutures)
-        val childrenFetchTasks = mutableListOf<FetchTask>()
-        for (childFuture in childrenFetchFutures) {
-            try {
-                childrenFetchTasks.add(childFuture.get(executeChildPlannerTimeoutSeconds, TimeUnit.SECONDS))
-            } catch (e: Exception) {
-                fetchTask.submitError(e.message!!)
-                break
-            }
-        }
-        afterChildrenTasksDone(fetchTask, childrenFetchTasks)
         return fetchFuture
     }
 
