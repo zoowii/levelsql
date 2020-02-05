@@ -1,8 +1,12 @@
 package com.zoowii.levelsql.sql.ast
 
+import com.zoowii.levelsql.engine.types.Chunk
+import com.zoowii.levelsql.engine.types.Datum
+import com.zoowii.levelsql.engine.types.DatumTypes
 import com.zoowii.levelsql.sql.scanner.Token
 import com.zoowii.levelsql.sql.scanner.TokenTypes
 import java.lang.StringBuilder
+import java.sql.SQLException
 
 interface Node {
 }
@@ -50,19 +54,28 @@ class InsertStatement(val line: Int, val tblName: String, val columns: List<Stri
     }
 }
 
-class ColumnHintInfo(val tblName: String?, val column: String) {
+data class ColumnHintInfo(val tblName: String?, val column: String) {
 }
 
 interface Expr : Node {
     // 表达式中用到了哪些列
     fun usingColumns(): List<ColumnHintInfo>
     // TODO: 把Row的eval方法放入这里
+
+    // 向量化计算表达式的值,chunks是多行输入
+    // @param headerNames 是本row各数据对应的header name
+    fun eval(chunk: Chunk, headerNames: List<String>): List<Datum>
 }
 
 class ExprOp(val opToken: Token) : Expr {
     override fun usingColumns(): List<ColumnHintInfo> {
         return listOf()
     }
+
+    override fun eval(chunk: Chunk, headerNames: List<String>): List<Datum> {
+        throw SQLException("single op not support to eval")
+    }
+
     override fun toString(): String {
         return opToken.toString()
     }
@@ -77,14 +90,84 @@ class TokenExpr(val token: Token) : Expr {
         }
     }
 
+    override fun eval(chunk: Chunk, headerNames: List<String>): List<Datum> {
+        return chunk.rows.map {
+            val row = it
+            when {
+                token.t == TokenTypes.tkName -> row.getItem(headerNames, token.s)
+                token.isLiteralValue() -> token.getLiteralDatumValue()
+                else -> throw SQLException("not supported token $token in expr")
+            }
+        }
+    }
+
     override fun toString(): String {
         return token.toString()
+    }
+}
+
+class ColumnHintExpr(val tblName: String, val column: String) : Expr {
+    override fun usingColumns(): List<ColumnHintInfo> {
+        return listOf(ColumnHintInfo(tblName, column))
+    }
+
+    override fun eval(chunk: Chunk, headerNames: List<String>): List<Datum> {
+        // TODO: 检查输入和tblName是否一致
+        return chunk.rows.map {
+            it.getItem(headerNames, column)
+        }
+    }
+
+    override fun toString(): String {
+        return "$tblName.$column"
+    }
+}
+
+class FuncCallExpr(val funcName: String, val args: List<Expr>) : Expr {
+    companion object {
+        private val availableFuncs = hashMapOf(
+                Pair("sum", SumExprFunc())
+        )
+    }
+    var func: ExprFunc? = null
+    init {
+        if(!availableFuncs.containsKey(funcName)) {
+            throw SQLException("can't find function $funcName")
+        }
+        func = availableFuncs[funcName]
+    }
+
+    override fun usingColumns(): List<ColumnHintInfo> {
+        val result = mutableSetOf<ColumnHintInfo>()
+        for(item in args) {
+            result.addAll(item.usingColumns())
+        }
+        return result.toList()
+    }
+
+    override fun eval(chunk: Chunk, headerNames: List<String>): List<Datum> {
+        val argsValues = args.map { it.eval(chunk, headerNames) }
+        return func!!.invoke(argsValues)
+    }
+
+    override fun toString(): String {
+        return "$funcName(${args.joinToString(", ")})"
     }
 }
 
 class BinOpExpr(val op: ExprOp, val left: Expr, val right: Expr) : Expr {
     override fun usingColumns(): List<ColumnHintInfo> {
         return left.usingColumns() + right.usingColumns()
+    }
+
+    override fun eval(chunk: Chunk, headerNames: List<String>): List<Datum> {
+        val leftValues = left.eval(chunk, headerNames)
+        val rightValues = right.eval(chunk, headerNames)
+        if(!arithFuncs.containsKey(op.opToken.t)) {
+            throw SQLException("not supported op $op in expr")
+        }
+        val func = arithFuncs[op.opToken.t]!!
+        return func.invoke(listOf(leftValues, rightValues))
     }
 
     override fun toString(): String {
@@ -95,6 +178,7 @@ class BinOpExpr(val op: ExprOp, val left: Expr, val right: Expr) : Expr {
             builder.append("$left ")
         }
         builder.append(op.toString())
+        builder.append(" ")
         if(right.javaClass == BinOpExpr::class.java) {
             builder.append("($right)")
         } else {

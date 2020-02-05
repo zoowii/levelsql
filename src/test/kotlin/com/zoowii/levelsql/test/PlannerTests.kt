@@ -167,7 +167,7 @@ class PlannerTests {
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
-        val sql1 = "select * from employee, person limit 2,2" // TODO: count(*), sum(age)之类聚合运算符
+        val sql1 = "select age + age from employee, person where id > 0 limit 2,2" // TODO: count(*), sum(age)之类聚合运算符
         engine.executeSQL(session, sql1)
     }
 }

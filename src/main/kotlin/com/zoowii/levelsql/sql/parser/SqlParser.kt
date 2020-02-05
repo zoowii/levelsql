@@ -208,8 +208,37 @@ class SqlParser(private val source: String, private val reader: InputStream) {
             val token = currentToken()
             when {
                 token.t == tkName -> {
-                    // TODO: 对于 a.b这类columnHint 以及 func(arg), count(1), count(*)这类函数调用信息，也要处理
-                    suffixStack.add(TokenExpr(checkToken()))
+                    val token = checkToken()
+                    val expr: Expr
+                    // 对于 a.b这类columnHint 以及 func(arg), count(1), count(*)这类函数调用信息，也要处理
+                    val nextToken = currentToken()
+                    when(nextToken.t) {
+                        '.'.toInt() -> {
+                            // a.b 这类columnHint
+                            next()
+                            val columnToken = checkToken()
+                            expr = ColumnHintExpr(token.s, columnToken.s)
+                        }
+                        '('.toInt() -> {
+                            // func(args)这类函数调用
+                            next()
+                            val args = mutableListOf<Expr>()
+                            while(!scanner.eos() && currentToken().t != ')'.toInt()) {
+                                args.add(checkExpr())
+                                if(currentToken().t == ','.toInt()) {
+                                    next()
+                                } else {
+                                    break
+                                }
+                            }
+                            checkNext(')')
+                            expr = FuncCallExpr(token.s, args)
+                        }
+                        else -> {
+                            expr = TokenExpr(token)
+                        }
+                    }
+                    suffixStack.add(expr)
                 }
                 token.isLiteralValue() -> {
                     suffixStack.add(TokenExpr(checkToken()))
@@ -261,6 +290,10 @@ class SqlParser(private val source: String, private val reader: InputStream) {
                     opsStack.add(null)
                 }
                 token.t == ')'.toInt() -> {
+                    if(opsStack.isEmpty()) {
+                        // opsStacks中的操作符或者(是空的，说明是直接遇到')'或者symbol或者字面量后遇到')'，说明之前的表达式结束了
+                        break@loop
+                    }
                     next()
                     // 要求栈中上一个是一个值(非null)并且上上一个值是'(' (用null表示)
                     if (opsStack.size < 1) {

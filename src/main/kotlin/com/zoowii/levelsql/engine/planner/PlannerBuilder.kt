@@ -33,10 +33,12 @@ object PlannerBuilder {
                 stmt as SelectStatement
                 // TODO: 各planner的实例需要设置输出的各列名称
 
-                // TODO: 如果有聚合函数，需要增加聚合算子
                 // 目前没有聚合操作，顶层直接就是projection
-                val projection = ProjectionPlanner(session, stmt.selectItems.map { it.toString() })
+                val projection = ProjectionPlanner(session, stmt.selectItems)
                 var currentLevel: LogicalPlanner = projection
+                var topLevel = projection
+                // TODO: 如果projection中有聚合函数（而不是普通单行计算函数），需要在projection之上增加聚合算子，并且projection计算的输出遇到聚合函数时要输出聚合函数要求的列
+
                 if(stmt.limit!=null) {
                     val limitPlanner = LimitPlanner(session, stmt.limit.offset, stmt.limit.limit)
                     currentLevel.addChild(limitPlanner)

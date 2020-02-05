@@ -44,81 +44,9 @@ class Row : StoreSerializable<Row> {
         return data[idx]
     }
 
-    // 计算本row应用到表达式{expr}后计算得到的值, @param headerNames 是本row各数据对应的header name
-    fun calculateExpr(expr: Expr, headerNames: List<String>): Datum {
-        when(expr.javaClass) {
-            BinOpExpr::class.java -> {
-                expr as BinOpExpr
-                val leftValue = this.calculateExpr(expr.left, headerNames)
-                val rightValue = this.calculateExpr(expr.right, headerNames)
-                val op = expr.op
-                // TODO: 为了简化实现，数值计算目前只接受整数
-                when(op.opToken.t) {
-                    '>'.toInt() -> {
-                        if(leftValue.kind != DatumTypes.kindInt64
-                                || rightValue.kind != DatumTypes.kindInt64) {
-                            throw SQLException("sql math op now only support integer")
-                        }
-                        return Datum(DatumTypes.kindBool, boolValue =  leftValue.intValue!! > rightValue.intValue!!)
-                    }
-                    '<'.toInt() -> {
-                        if(leftValue.kind != DatumTypes.kindInt64
-                                || rightValue.kind != DatumTypes.kindInt64) {
-                            throw SQLException("sql math op now only support integer")
-                        }
-                        return Datum(DatumTypes.kindBool, boolValue =  leftValue.intValue!! < rightValue.intValue!!)
-                    }
-                    '='.toInt() -> {
-                        return Datum(DatumTypes.kindBool,
-                                boolValue =  (leftValue.kind == rightValue.kind && leftValue.toString() == rightValue.toString()))
-                    }
-                    TokenTypes.tkGe -> {
-                        // >=
-                        if(leftValue.kind != DatumTypes.kindInt64
-                                || rightValue.kind != DatumTypes.kindInt64) {
-                            throw SQLException("sql math op now only support integer")
-                        }
-                        return Datum(DatumTypes.kindBool, boolValue =  leftValue.intValue!! >= rightValue.intValue!!)
-                    }
-                    TokenTypes.tkGL -> {
-                        // <>
-                        return Datum(DatumTypes.kindBool,
-                                boolValue =  (leftValue.kind != rightValue.kind || leftValue.toString() != rightValue.toString()))
-                    }
-                    TokenTypes.tkNe -> {
-                        // !=
-                        return Datum(DatumTypes.kindBool,
-                                boolValue =  (leftValue.kind != rightValue.kind || leftValue.toString() != rightValue.toString()))
-                    }
-                    TokenTypes.tkLe -> {
-                        // <=
-                        if(leftValue.kind != DatumTypes.kindInt64
-                                || rightValue.kind != DatumTypes.kindInt64) {
-                            throw SQLException("sql math op now only support integer")
-                        }
-                        return Datum(DatumTypes.kindBool, boolValue =  leftValue.intValue!! <= rightValue.intValue!!)
-                    }
-                    else -> throw SQLException("not supported op $op in expr")
-                }
-            }
-            TokenExpr::class.java -> {
-                expr as TokenExpr
-                val token = expr.token
-                return when {
-                    token.t == TokenTypes.tkName -> getItem(headerNames, token.s)
-                    token.isLiteralValue() -> token.getLiteralDatumValue()
-                    else -> throw SQLException("not supported token $token in expr")
-                }
-            }
-            else -> {
-                throw SQLException("not supported CondExpr type ${expr.javaClass}")
-            }
-        }
-    }
-
     // 本row是否满足条件表达式{cond}, @param headerNames 是本row各数据对应的header name
     fun matchCondExpr(cond: Expr, headerNames: List<String>): Boolean {
-        val exprValue = this.calculateExpr(cond, headerNames)
+        val exprValue = cond.eval(Chunk().replaceRows(listOf(this)), headerNames)[0]
         return exprValue.kind == DatumTypes.kindBool && exprValue.boolValue!!
     }
 }
