@@ -84,6 +84,16 @@ select name, age, * from employee, person
     zhang2,	22,	2,	zhang2,	22,	null
 ```
 
+``` 
+select sum(age), count(age), max(age), min(age)
+     from employee, person
+     where id > 0 limit 2,2
+
+// output:
+sum(age)	count(age)	max(age)	min(age)
+44,	2,	23,	21
+```
+
 * insert
 ``` 
 insert into employee (id, name, age) values 

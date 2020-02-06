@@ -83,7 +83,7 @@ class ExprOp(val opToken: Token) : Expr {
 
 class TokenExpr(val token: Token) : Expr {
     override fun usingColumns(): List<ColumnHintInfo> {
-        if(token.t == TokenTypes.tkName) {
+        if (token.t == TokenTypes.tkName) {
             return listOf(ColumnHintInfo(null, token.s))
         } else {
             return listOf()
@@ -119,19 +119,26 @@ class ColumnHintExpr(val tblName: String, val column: String) : Expr {
     }
 
     override fun toString(): String {
+        if (tblName.isNullOrBlank())
+            return column
         return "$tblName.$column"
     }
 }
 
 class FuncCallExpr(val funcName: String, val args: List<Expr>) : Expr {
     companion object {
-        private val availableFuncs = hashMapOf(
-                Pair("sum", SumExprFunc())
+        private val availableFuncs = hashMapOf<String, ExprFunc>(
+                Pair("sum", SumExprFunc()),
+                Pair("count", CountExprFunc()),
+                Pair("max", MaxExprFunc()),
+                Pair("min", MinExprFunc())
         )
     }
+
     var func: ExprFunc? = null
+
     init {
-        if(!availableFuncs.containsKey(funcName)) {
+        if (!availableFuncs.containsKey(funcName)) {
             throw SQLException("can't find function $funcName")
         }
         func = availableFuncs[funcName]
@@ -139,15 +146,37 @@ class FuncCallExpr(val funcName: String, val args: List<Expr>) : Expr {
 
     override fun usingColumns(): List<ColumnHintInfo> {
         val result = mutableSetOf<ColumnHintInfo>()
-        for(item in args) {
+        for (item in args) {
             result.addAll(item.usingColumns())
         }
         return result.toList()
     }
 
+    fun aggregateEval(result: MutableList<Datum>, groupIndex: Int, chunk: Chunk, headerNames: List<String>) {
+        val argsValues = args.map { it.eval(chunk, headerNames) }
+
+        if (AggregateFunc::class.java.isAssignableFrom(func!!.javaClass)) {
+            val aggFunc = func!! as AggregateFunc
+            aggFunc.reduce(result, groupIndex, argsValues)
+        } else {
+            val callResp = func!!.invoke(argsValues)
+            result[groupIndex] = if (callResp.isEmpty()) Datum(DatumTypes.kindNull) else callResp[0]
+        }
+    }
+
     override fun eval(chunk: Chunk, headerNames: List<String>): List<Datum> {
         val argsValues = args.map { it.eval(chunk, headerNames) }
-        return func!!.invoke(argsValues)
+
+        if (AggregateFunc::class.java.isAssignableFrom(func!!.javaClass)) {
+            val aggFunc = func!! as AggregateFunc
+            val result = mutableListOf<Datum>()
+            result.add(Datum(DatumTypes.kindNull)) // 目前还没实现分组，所以聚合函数的返回结构只有一行
+            val groupIndex = 0
+            aggFunc.reduce(result, groupIndex, argsValues)
+            return result
+        } else {
+            return func!!.invoke(argsValues)
+        }
     }
 
     override fun toString(): String {
@@ -163,7 +192,7 @@ class BinOpExpr(val op: ExprOp, val left: Expr, val right: Expr) : Expr {
     override fun eval(chunk: Chunk, headerNames: List<String>): List<Datum> {
         val leftValues = left.eval(chunk, headerNames)
         val rightValues = right.eval(chunk, headerNames)
-        if(!arithFuncs.containsKey(op.opToken.t)) {
+        if (!arithFuncs.containsKey(op.opToken.t)) {
             throw SQLException("not supported op $op in expr")
         }
         val func = arithFuncs[op.opToken.t]!!
@@ -172,14 +201,14 @@ class BinOpExpr(val op: ExprOp, val left: Expr, val right: Expr) : Expr {
 
     override fun toString(): String {
         val builder = StringBuilder()
-        if(left.javaClass == BinOpExpr::class.java) {
+        if (left.javaClass == BinOpExpr::class.java) {
             builder.append("($left) ")
         } else {
             builder.append("$left ")
         }
         builder.append(op.toString())
         builder.append(" ")
-        if(right.javaClass == BinOpExpr::class.java) {
+        if (right.javaClass == BinOpExpr::class.java) {
             builder.append("($right)")
         } else {
             builder.append("$right")
