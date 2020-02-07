@@ -1,5 +1,7 @@
 package com.zoowii.levelsql.engine.utils
 
+import java.util.*
+
 fun <E> List<E>.removeIndex(idx: Int): List<E> {
     if(isEmpty())
         return this
@@ -28,4 +30,24 @@ fun <E> List<E>.safeSlice(start: Int, end: Int): List<E> {
         realEnd = end
     }
     return this.subList(start, realEnd)
+}
+
+fun ByteArray.safeSlice(start: Int, end: Int): ByteArray {
+    var realEnd = end
+    if(realEnd<0)
+        realEnd = this.size + end
+    if(realEnd <= start) {
+        return byteArrayOf()
+    }
+    if(start >= this.size) {
+        return byteArrayOf()
+    }
+    if(realEnd > this.size) {
+        realEnd = end
+    }
+    val result = ByteArray(realEnd - start)
+    (start until realEnd).mapIndexed { newIndex, originIndex ->
+        result[newIndex] = this[originIndex]
+    }
+    return result
 }

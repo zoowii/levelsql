@@ -5,6 +5,7 @@ import com.zoowii.levelsql.engine.DbSession
 import com.zoowii.levelsql.engine.exceptions.DbException
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.index.IndexNodeValue
+import com.zoowii.levelsql.engine.index.datumsToIndexKey
 import com.zoowii.levelsql.engine.types.Chunk
 import com.zoowii.levelsql.engine.types.Datum
 import com.zoowii.levelsql.engine.types.DatumTypes
@@ -165,7 +166,7 @@ class InsertPlanner(private val sess: DbSession, val tblName: String, val column
             val primaryKeyValue = datumRow[primaryKeyIndex]
             val row = Row()
             row.data = datumRow
-            table.rawInsert(primaryKeyValue.toBytes(), row.toBytes())
+            table.rawInsert(primaryKeyValue, row)
         }
         fetchTask.submitChunk(Chunk.singleLongValue(datumRows.size.toLong())) // 输出添加的行数
     }
@@ -857,7 +858,7 @@ class ProductPlanner(private val sess: DbSession) : LogicalPlanner(sess) {
         }
         val orderedChildrenChunks = mutableListOf<Chunk>()
         for (child in children) {
-            orderedChildrenChunks.add(childrenChunks[child]!!)
+            orderedChildrenChunks.add(if(childrenChunks.containsKey(child)) childrenChunks[child]!! else Chunk())
         }
         // 对orderedChildrenChunks做笛卡尔积
         val productChunk = productChunks(orderedChildrenChunks)

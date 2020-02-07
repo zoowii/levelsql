@@ -5,12 +5,14 @@ import com.zoowii.levelsql.engine.store.toBytes
 import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import com.zoowii.levelsql.engine.utils.compareBytes
 import com.zoowii.levelsql.engine.utils.compareNodeKey
+import com.zoowii.levelsql.engine.utils.safeSlice
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 
 typealias DatumType = Int
 
 object DatumTypes {
+    // TODO: null不直接作为kindNull，而是其他类型的nullable类型
     val kindNull: DatumType = 0
     val kindInt64: DatumType = 1
     val kindString: DatumType = 2
@@ -32,7 +34,12 @@ class Datum(var kind: DatumType, var intValue: Long? = null, var stringValue: St
         }
     }
 
-    override fun toBytes(): ByteArray {
+
+    private val stringIndexKeyMaxBytesSize = 30 // 字符串类型的datum作为IndexKey的组成部分时要补齐或者裁减为这个固定长度的字节数组
+
+    // 转成字节数组
+    // @param haveFixedSize 是否根据类型补齐或者裁减为固定长度的字节数组
+    fun toBytes(haveFixedSize: Boolean): ByteArray {
         val out = ByteArrayOutputStream()
         out.write(kind.toBytes())
         when(kind) {
@@ -41,10 +48,18 @@ class Datum(var kind: DatumType, var intValue: Long? = null, var stringValue: St
                 out.write(intValue!!.toBytes())
             }
             DatumTypes.kindString -> {
-                out.write(stringValue!!.toBytes())
+                var strBytes = stringValue!!.toBytes()
+                if(haveFixedSize) {
+                    strBytes = strBytes.safeSlice(0, stringIndexKeyMaxBytesSize)
+                }
+                out.write(strBytes)
             }
             DatumTypes.kindText -> {
-                out.write(stringValue!!.toBytes())
+                var strBytes = stringValue!!.toBytes()
+                if(haveFixedSize) {
+                    strBytes = strBytes.safeSlice(0, stringIndexKeyMaxBytesSize)
+                }
+                out.write(strBytes)
             }
             DatumTypes.kindBool -> {
                 out.write(boolValue!!.toBytes())
@@ -52,6 +67,10 @@ class Datum(var kind: DatumType, var intValue: Long? = null, var stringValue: St
             else -> throw IOException("not supported datum kind $kind toBytes")
         }
         return out.toByteArray()
+    }
+
+    override fun toBytes(): ByteArray {
+        return toBytes(false)
     }
 
     override fun fromBytes(stream: ByteArrayStream): Datum {

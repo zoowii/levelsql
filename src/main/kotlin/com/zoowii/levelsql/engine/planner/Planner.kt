@@ -74,7 +74,7 @@ abstract class LogicalPlanner(private val sess: DbSession) : Planner {
             val childrenFetchTasks = mutableListOf<FetchTask>()
             for (childFuture in childrenFetchFutures) {
                 try {
-                    childrenFetchTasks.add(childFuture.get(executeChildPlannerTimeoutSeconds, TimeUnit.SECONDS))
+                    childrenFetchTasks.add(childFuture.get(PlannerConfig.executeChildPlannerTimeoutSeconds, TimeUnit.SECONDS))
                 } catch (e: Exception) {
                     fetchTask.submitError(e.message!!)
                     break
@@ -141,8 +141,6 @@ abstract class LogicalPlanner(private val sess: DbSession) : Planner {
         }
         fetchTask.submitChunk(mergedChunk)
     }
-
-    private val executeChildPlannerTimeoutSeconds: Long = 10
 
     private val taskQueue = ConcurrentLinkedQueue<FetchTask>()
 

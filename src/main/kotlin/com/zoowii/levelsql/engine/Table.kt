@@ -6,8 +6,11 @@ import com.zoowii.levelsql.engine.exceptions.IndexException
 import com.zoowii.levelsql.engine.index.IndexLeafNodeValue
 import com.zoowii.levelsql.engine.index.IndexNodeValue
 import com.zoowii.levelsql.engine.index.IndexTree
+import com.zoowii.levelsql.engine.index.datumsToIndexKey
 import com.zoowii.levelsql.engine.store.RowId
 import com.zoowii.levelsql.engine.store.toBytes
+import com.zoowii.levelsql.engine.types.Datum
+import com.zoowii.levelsql.engine.types.Row
 import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import com.zoowii.levelsql.engine.utils.KeyCondition
 import com.zoowii.levelsql.sql.ast.ColumnHintInfo
@@ -119,35 +122,39 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
     }
 
 
-    fun rawInsert(key: ByteArray, record: ByteArray) {
+    // TODO: raw方法改成主键key和record都用Datum以及Row的方式
+    fun rawInsert(key: Datum, record: Row) {
         val nextRowId = nextRowId()
-        primaryIndex.tree.addKeyValue(IndexLeafNodeValue(nextRowId, key, record))
+        primaryIndex.tree.addKeyValue(IndexLeafNodeValue(nextRowId, datumsToIndexKey(key), record.toBytes()))
         // TODO: 二级索引也需要插入记录
     }
 
-    fun rawUpdate(rowId: RowId, key: ByteArray, record: ByteArray) {
+    fun rawUpdate(rowId: RowId, key: Datum, record: Row) {
         try {
-            primaryIndex.tree.replaceKeyValue(IndexLeafNodeValue(rowId, key, record))
+            primaryIndex.tree.replaceKeyValue(IndexLeafNodeValue(rowId, datumsToIndexKey(key), record.toBytes()))
         } catch (e: IndexException) {
             throw DbException(e.message!!)
         }
         // TODO: 二级索引也需要修改记录
     }
 
-    fun rawDelete(key: ByteArray, rowId: RowId) {
-        val nodeAndPos = primaryIndex.tree.findLeafNodeByKeyAndRowId(key, rowId)
+    fun rawDelete(key: Datum, rowId: RowId) {
+        val indexPrimaryKey = datumsToIndexKey(key)
+        val nodeAndPos = primaryIndex.tree.findLeafNodeByKeyAndRowId(indexPrimaryKey, rowId)
         if (nodeAndPos == null) {
             throw DbException("record not found for delete")
         }
-        primaryIndex.tree.deleteByKeyAndRowId(key, rowId)
+        primaryIndex.tree.deleteByKeyAndRowId(indexPrimaryKey, rowId)
         // TODO: 二级索引也需要修改记录
     }
 
-    fun rawGet(key: ByteArray): IndexLeafNodeValue? {
-        val (nodeAndPos, isNewNode) = primaryIndex.tree.findIndex(key, false)
+    fun rawGet(key: Datum): IndexLeafNodeValue? {
+        val indexPrimaryKey = datumsToIndexKey(key)
+        val (nodeAndPos, isNewNode) = primaryIndex.tree.findIndex(indexPrimaryKey, false)
         if (nodeAndPos == null || isNewNode) {
             return null
         }
+        // 调用者在rawGet后要循环检查返回的值是否满足条件（因为有可能是裁减后的key满足条件)，如果不满足就找下一项(如果没结束的话)
         return nodeAndPos.node.values[nodeAndPos.indexInNode]
     }
 
@@ -170,6 +177,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         var cur: IndexNodeValue? = first
         while (cur != null) {
             val record = cur.leafRecord()
+            // TODO: condition内目前是包含了补齐裁减后的key的条件，不是原始key，需要另外保留原始key，record中也要保留原始key，方便检查是否完全满足
             if (condition.match(record.key)) {
                 mutableResult += record
                 cur = primaryIndex.tree.nextRecordPosition(cur)

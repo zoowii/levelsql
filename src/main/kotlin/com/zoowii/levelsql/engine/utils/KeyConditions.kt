@@ -1,5 +1,6 @@
 package com.zoowii.levelsql.engine.utils
 
+import com.zoowii.levelsql.engine.index.datumsToIndexKey
 import com.zoowii.levelsql.engine.types.Datum
 import com.zoowii.levelsql.sql.scanner.Token
 import com.zoowii.levelsql.sql.scanner.TokenTypes
@@ -18,7 +19,7 @@ interface KeyCondition {
 
     companion object {
         fun createFromBinExpr(op: Token, rightValue: Datum): KeyCondition {
-            val rightValueData = rightValue.toBytes()
+            val rightValueData = datumsToIndexKey(rightValue)
             return when(op.t) {
                 '>'.toInt() -> {
                     GreatThanKeyCondition(rightValueData)

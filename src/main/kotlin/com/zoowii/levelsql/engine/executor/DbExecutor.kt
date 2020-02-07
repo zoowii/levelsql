@@ -2,7 +2,9 @@ package com.zoowii.levelsql.engine.executor
 
 import com.zoowii.levelsql.engine.planner.LogicalPlanner
 import com.zoowii.levelsql.engine.planner.Planner
+import com.zoowii.levelsql.engine.planner.PlannerConfig
 import com.zoowii.levelsql.engine.types.Chunk
+import com.zoowii.levelsql.engine.utils.logger
 import java.lang.Exception
 import java.sql.SQLException
 import java.util.concurrent.Executors
@@ -12,7 +14,8 @@ import java.util.concurrent.TimeUnit
 // 一次sql的执行，每个planner都可能被调用多次。上层planner给下层planner提交一个start请求，然后可能多次给下层planner提交一个输出的request(FetchTask)
 // 下层planner在start后，如果收到输出的request，则继续执行逻辑并填充输出数据到输出的request(FetchTask)。直到没数据或者错误后提交done/error给FutureTask
 class DbExecutor {
-    private val taskExecutor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors())
+    private val log = logger()
+    private val taskExecutor = Executors.newCachedThreadPool()
 
     fun executePlanner(planner: Planner): Chunk {
         when {
@@ -32,8 +35,6 @@ class DbExecutor {
         }
     }
 
-    private val executeEachPlannerTimeoutSeconds: Long = 10
-
     private fun executeLogicalPlanner(planner: LogicalPlanner): Chunk {
         val result = mutableListOf<Chunk>()
         startPlannerTree(planner)
@@ -42,8 +43,9 @@ class DbExecutor {
                 val fetchFuture = planner.submitFetchTask()
                 val fetchTask: FetchTask
                 try {
-                    fetchTask = fetchFuture.get(executeEachPlannerTimeoutSeconds, TimeUnit.SECONDS)
+                    fetchTask = fetchFuture.get(PlannerConfig.executeEachPlannerTimeoutSeconds, TimeUnit.SECONDS)
                 } catch (e: Exception) {
+                    log.error("fetch task of planner ${planner.javaClass.canonicalName} error $e")
                     throw e
                 }
                 if (!fetchFuture.isDone) {

@@ -6,7 +6,7 @@ import com.zoowii.levelsql.engine.store.toBytes
 import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import java.io.ByteArrayOutputStream
 
-// TODO: 联合索引的实现，需要把各列的值裁剪成固定长度bytes，然后合并成一个bytes作为key插入树中
+// 支持单字段索引和联合索引
 // 比如3个列A,B,C构成的联合索引，查询时条件只有A和B，则把(A+B+和C对应的固定长度空bytes)合并成一个bytes作为key去树中检索数据
 class Index(val table: Table, val indexName: String, val columns: List<String>, val unique: Boolean = false, val primary: Boolean=false) {
     val tree = IndexTree(table.db.store, "db_${table.db.dbName}_table_${table.tblName}_primary_index",
