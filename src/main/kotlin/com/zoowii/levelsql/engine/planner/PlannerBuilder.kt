@@ -180,10 +180,20 @@ object PlannerBuilder {
                             child as SelectPlanner
                             val table = db.openTable(child.tblName)
                             val index = table.findIndexByColumns(filterColumns) ?: continue
-                            // 为简化实现，暂时只先处理使用主键索引的情况
-                            // TODO: 如果用了二级索引，输出的列不够祖先planner使用的（查看最顶层planner的outputNames），则需要做回表
-                            if (!index.primary)
-                                continue
+                            if (!index.primary) {
+                                // 如果用了二级索引，输出的列不够祖先planner使用的（查看最顶层planner的outputNames），则需要做回表
+                                // 在IndexSelectPlanner之上增加一个回表查询的算子
+                                val sortAsc = true // TODO: 需要从上级planner中搜集到各列要求索引检索的排序顺序, 暂时索引检索只用增序
+                                val indexPlanner = IndexSelectPlanner(session, table.tblName, index.indexName, sortAsc, planner.cond)
+                                indexPlanner.children = child.children
+
+                                // 回表算子
+                                val selectByIdPlanner = IndexSelectByIdPlanner(session, table.tblName)
+                                selectByIdPlanner.addChild(indexPlanner)
+
+                                planner.setChild(i, selectByIdPlanner)
+                                return onlyOptimiseChildren()
+                            }
                             val sortAsc = true // TODO: 需要从上级planner中搜集到各列要求索引检索的排序顺序, 暂时索引检索只用增序
                             val indexPlanner = IndexSelectPlanner(session, table.tblName, index.indexName, sortAsc, planner.cond)
                             indexPlanner.children = child.children

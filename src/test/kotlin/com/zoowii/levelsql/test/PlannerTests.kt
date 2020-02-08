@@ -46,6 +46,7 @@ class PlannerTests {
         )
         val employeeTable = db.createTable("employee", employeeTableColumns, "id")
         employeeTable.createIndex("employee_name_idx", listOf("name"), false)
+        employeeTable.createIndex("employee_name_age_idx", listOf("name", "age"), false)
 
         db.saveMeta()
 
@@ -53,7 +54,7 @@ class PlannerTests {
             val session = engine.createSession()
             session.useDb(testDbName)
             engine.executeSQL(session, "create table person (id int, person_name text)")
-            engine.executeSQL(session, "create index person_name_idx on person (per_name)")
+            engine.executeSQL(session, "create index person_name_idx on person (person_name)")
         }
 
         run {
@@ -96,7 +97,7 @@ class PlannerTests {
         engine.executeSQL(session, sql1)
     }
 
-    @Test fun testSimpleSelectByIndexLogicalPlanner() {
+    @Test fun testSimpleSelectByPrimaryIndexLogicalPlanner() {
         createSampleDb()
         insertSampleRecords()
         val engine = LevelSqlEngine(store!!)
@@ -104,6 +105,18 @@ class PlannerTests {
         val session = engine.createSession()
         session.useDb("test")
         val sql1 = "select name, age, * from employee where id > 1 order by id desc limit 1,2"
+        engine.executeSQL(session, sql1)
+    }
+
+    @Test fun testSimpleSelectBySecondaryIndexLogicalPlanner() {
+        createSampleDb()
+        insertSampleRecords()
+        val engine = LevelSqlEngine(store!!)
+        engine.loadMeta()
+        val session = engine.createSession()
+        session.useDb("test")
+        // 使用了二级索引和联合索引，会优化成使用二级索引并根据需要做回表查询
+        val sql1 = "select name, age, * from employee where name = 'zhang3' order by id desc" // name = 'zhang3' and age = 23
         engine.executeSQL(session, sql1)
     }
 

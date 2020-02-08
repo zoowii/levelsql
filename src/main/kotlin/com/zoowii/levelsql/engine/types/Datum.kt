@@ -2,10 +2,7 @@ package com.zoowii.levelsql.engine.types
 
 import com.zoowii.levelsql.engine.store.StoreSerializable
 import com.zoowii.levelsql.engine.store.toBytes
-import com.zoowii.levelsql.engine.utils.ByteArrayStream
-import com.zoowii.levelsql.engine.utils.compareBytes
-import com.zoowii.levelsql.engine.utils.compareNodeKey
-import com.zoowii.levelsql.engine.utils.safeSlice
+import com.zoowii.levelsql.engine.utils.*
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 
@@ -50,14 +47,16 @@ class Datum(var kind: DatumType, var intValue: Long? = null, var stringValue: St
             DatumTypes.kindString -> {
                 var strBytes = stringValue!!.toBytes()
                 if(haveFixedSize) {
-                    strBytes = strBytes.safeSlice(0, stringIndexKeyMaxBytesSize)
+                    val fixedSize = stringIndexKeyMaxBytesSize
+                    strBytes = strBytes.safeSlice(0, fixedSize).leftFillZero(fixedSize)
                 }
                 out.write(strBytes)
             }
             DatumTypes.kindText -> {
                 var strBytes = stringValue!!.toBytes()
                 if(haveFixedSize) {
-                    strBytes = strBytes.safeSlice(0, stringIndexKeyMaxBytesSize)
+                    val fixedSize = stringIndexKeyMaxBytesSize
+                    strBytes = strBytes.safeSlice(0, fixedSize).leftFillZero(fixedSize)
                 }
                 out.write(strBytes)
             }

@@ -55,6 +55,7 @@ class DbExecutor {
                     break
                 }
                 if (fetchTask.error != null) {
+                    log.error("fetch task of planner ${planner.javaClass.canonicalName} error ${fetchTask.error}")
                     throw SQLException(fetchTask.error)
                 }
                 if (fetchTask.chunk == null) {

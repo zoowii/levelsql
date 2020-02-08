@@ -56,7 +56,9 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
             // load secondary indexes
             val secondaryIndexesCount = stream.unpackInt32()
             table.secondaryIndexes = (0 until secondaryIndexesCount).map {
-                Index.metaFromBytes(table, stream)
+                val index = Index.metaFromBytes(table, stream)
+                index.tree.initTree()
+                index
             }
             return table
         }
@@ -101,12 +103,17 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         return secondaryIndexes.firstOrNull { it.indexName == indexName }
     }
 
+    fun openPrimaryIndex(): Index {
+        return primaryIndex
+    }
+
     fun createIndex(indexName: String, columns: List<String>, unique: Boolean): Index {
         val existed = openIndex(indexName)
         if (existed != null) {
             throw DbException("index name $tblName.$indexName conflict")
         }
         val index = Index(this, indexName, columns, unique, false)
+        index.tree.initTree()
         secondaryIndexes = secondaryIndexes + index
         return index
     }
@@ -121,12 +128,37 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         primaryIndex.tree.initTree()
     }
 
+    // 把一行记录(按table的columns顺序提供的)中{selectColumns}各列的值筛选出来返回
+    private fun mapRecordColumns(record: Row, selectColumns: List<String>): List<Datum> {
+        val selectColumnsIndexes = selectColumns.map { selectCol ->
+            columns.indexOfFirst { col -> col.name == selectCol }
+        }
+        val result = mutableListOf<Datum>()
+        for(idx in selectColumnsIndexes) {
+            if(idx < 0) {
+                throw DbException("mapRecordColumns error of column name not existed in table")
+            }
+            if(idx >= record.data.size) {
+                throw DbException("record row not is a full table record, column ${columns[idx].name} not found")
+            }
+            result.add(record.data[idx])
+        }
+        return result
+    }
 
-    // TODO: raw方法改成主键key和record都用Datum以及Row的方式
     fun rawInsert(key: Datum, record: Row) {
         val nextRowId = nextRowId()
         primaryIndex.tree.addKeyValue(IndexLeafNodeValue(nextRowId, datumsToIndexKey(key), record.toBytes()))
-        // TODO: 二级索引也需要插入记录
+        // 二级索引也需要插入记录
+        for(index in secondaryIndexes) {
+            val indexKeyDatums = mapRecordColumns(record, index.columns)
+            // TODO: index中能得到各列的类型，对于nullable值，indexKeyDatums生成IndexKey的过程需要根据列的类型固定长度
+            val indexKey = datumsToIndexKey(indexKeyDatums)
+            val itemRow = Row()
+            itemRow.data = listOf(key) // 这里是存储主键的原值，当需要回表的时候在转成Datum后再转成IndexKey去做回表查询
+            val value = itemRow.toBytes()
+            index.tree.addKeyValue(IndexLeafNodeValue(nextRowId, indexKey, value))
+        }
     }
 
     fun rawUpdate(rowId: RowId, key: Datum, record: Row) {
@@ -135,7 +167,16 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         } catch (e: IndexException) {
             throw DbException(e.message!!)
         }
-        // TODO: 二级索引也需要修改记录
+        // 二级索引也需要修改记录
+        for(index in secondaryIndexes) {
+            val indexKeyDatums = mapRecordColumns(record, index.columns)
+            // TODO: index中能得到各列的类型，对于nullable值，indexKeyDatums生成IndexKey的过程需要根据列的类型固定长度
+            val indexKey = datumsToIndexKey(indexKeyDatums)
+            val itemRow = Row()
+            itemRow.data = listOf(key) // 这里是存储主键的原值，当需要回表的时候在转成Datum后再转成IndexKey去做回表查询
+            val value = itemRow.toBytes()
+            index.tree.replaceKeyValue(IndexLeafNodeValue(rowId, indexKey, value))
+        }
     }
 
     fun rawDelete(key: Datum, rowId: RowId) {
@@ -144,8 +185,18 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         if (nodeAndPos == null) {
             throw DbException("record not found for delete")
         }
+        val record = Row().fromBytes(ByteArrayStream(nodeAndPos.leafRecord().value))
         primaryIndex.tree.deleteByKeyAndRowId(indexPrimaryKey, rowId)
-        // TODO: 二级索引也需要修改记录
+        // 二级索引也需要修改记录
+        for(index in secondaryIndexes) {
+            val indexKeyDatums = mapRecordColumns(record, index.columns)
+            // TODO: index中能得到各列的类型，对于nullable值，indexKeyDatums生成IndexKey的过程需要根据列的类型固定长度
+            val indexKey = datumsToIndexKey(indexKeyDatums)
+            val itemRow = Row()
+            itemRow.data = listOf(key) // 这里是存储主键的原值，当需要回表的时候在转成Datum后再转成IndexKey去做回表查询
+            val value = itemRow.toBytes()
+            index.tree.deleteByKeyAndRowId(indexKey, rowId)
+        }
     }
 
     fun rawGet(key: Datum): IndexLeafNodeValue? {

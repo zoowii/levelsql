@@ -68,19 +68,24 @@ abstract class LogicalPlanner(private val sess: DbSession) : Planner {
                 continue
             }
             val fetchTask = taskQueue.poll()
-            beforeChildrenTasksSubmit(fetchTask)
-            val childrenFetchFutures = submitFetchTaskToChildren()
-            afterChildrenTasksSubmitted(fetchTask, childrenFetchFutures)
-            val childrenFetchTasks = mutableListOf<FetchTask>()
-            for (childFuture in childrenFetchFutures) {
-                try {
-                    childrenFetchTasks.add(childFuture.get(PlannerConfig.executeChildPlannerTimeoutSeconds, TimeUnit.SECONDS))
-                } catch (e: Exception) {
-                    fetchTask.submitError(e.message!!)
-                    break
+            try {
+                beforeChildrenTasksSubmit(fetchTask)
+                val childrenFetchFutures = submitFetchTaskToChildren()
+                afterChildrenTasksSubmitted(fetchTask, childrenFetchFutures)
+                val childrenFetchTasks = mutableListOf<FetchTask>()
+                for (childFuture in childrenFetchFutures) {
+                    try {
+                        childrenFetchTasks.add(childFuture.get(PlannerConfig.executeChildPlannerTimeoutSeconds, TimeUnit.SECONDS))
+                    } catch (e: Exception) {
+                        fetchTask.submitError(e.message!!)
+                        break
+                    }
                 }
+                afterChildrenTasksDone(fetchTask, childrenFetchTasks)
+            } catch(e: Exception) {
+                e.printStackTrace()
+                fetchTask.submitError(e.message!!)
             }
-            afterChildrenTasksDone(fetchTask, childrenFetchTasks)
         }
     }
 

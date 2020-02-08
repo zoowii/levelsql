@@ -27,7 +27,7 @@ fun <E> List<E>.safeSlice(start: Int, end: Int): List<E> {
         return emptyList()
     }
     if(realEnd > this.size) {
-        realEnd = end
+        realEnd = this.size
     }
     return this.subList(start, realEnd)
 }
@@ -43,11 +43,26 @@ fun ByteArray.safeSlice(start: Int, end: Int): ByteArray {
         return byteArrayOf()
     }
     if(realEnd > this.size) {
-        realEnd = end
+        realEnd = this.size
     }
     val result = ByteArray(realEnd - start)
     (start until realEnd).mapIndexed { newIndex, originIndex ->
         result[newIndex] = this[originIndex]
+    }
+    return result
+}
+
+// 当byte array长度不够{targetSize}时，左侧补0字节
+fun ByteArray.leftFillZero(targetSize: Int): ByteArray {
+    if(this.size>=targetSize) {
+        return this
+    }
+    val result = ByteArray(targetSize)
+    (0 until (targetSize - size)).map {
+        result[it] = 0
+    }
+    ((targetSize - size) until targetSize).map {
+        result[it] = this[it - targetSize + size]
     }
     return result
 }
