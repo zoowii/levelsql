@@ -28,6 +28,9 @@ dependencies {
     // google cloud
     compile("com.google.cloud", "google-cloud-storage", "1.100.0")
 
+    // mysql
+    testCompile("mysql", "mysql-connector-java", "8.0.19")
+
 }
 
 configure<JavaPluginConvention> {
