@@ -8,7 +8,7 @@ import com.zoowii.levelsql.protocol.mysql.packet.QuitPacket
 import java.io.InputStream
 import java.io.OutputStream
 
-class ConnectionHandler(val inputStream: InputStream, val outputStream: OutputStream) {
+class ConnectionHandler(val server: MysqlServer, val inputStream: InputStream, val outputStream: OutputStream) {
     private val log = logger()
 
     private val context = Context(inputStream, outputStream)
@@ -31,6 +31,7 @@ class ConnectionHandler(val inputStream: InputStream, val outputStream: OutputSt
         context.send(handshake)
 
         val handshakeResponse = context.receive(HandshakeResponsePacket::class.java, false)
+        handshakeResponse as HandshakeResponsePacket
         log.debug("handshake response $handshakeResponse")
 
         context.setLastSeqId(handshakeResponse.sequenceId)
@@ -41,6 +42,8 @@ class ConnectionHandler(val inputStream: InputStream, val outputStream: OutputSt
         context.send(authRes)
         // end connection phase
 
+        context.currentDb = handshakeResponse.database
+
         // start command phase
         while(true) {
             val cmdPacket = context.receiveCmdType()
@@ -50,7 +53,7 @@ class ConnectionHandler(val inputStream: InputStream, val outputStream: OutputSt
                 break
             }
             context.setLastSeqId(cmdPacket.sequenceId)
-            val respPacket = CommandDispatcher.dispatchCommand(context, cmdPacket)
+            val respPacket = server.getDispatcher().dispatchCommand(context, cmdPacket)
             context.send(respPacket)
         }
         // TODO: 权限认证和依次处理请求的packet直到连接关闭

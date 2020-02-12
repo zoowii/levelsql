@@ -136,6 +136,14 @@ class SqlParser(private val source: String, private val reader: InputStream) {
         addSqlStatement(DescribeTableStatement(line, tblName))
     }
 
+    private fun setStatement(line: Int) {
+        next()
+        val paramName = checkToken().s
+        checkNext('=')
+        val paramValueExpr = checkExpr()
+        addSqlStatement(SetStatement(line, paramName, paramValueExpr))
+    }
+
     private fun createStatement(line: Int) {
         next()
         val typeToken = checkToken()
@@ -617,6 +625,9 @@ class SqlParser(private val source: String, private val reader: InputStream) {
             }
             tkDescribe -> {
                 describeStatement(line)
+            }
+            tkSet -> {
+                setStatement(line)
             }
             else -> {
                 throw SqlParseException("not support sql syntax ${scanner.currentToken()}")

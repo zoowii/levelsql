@@ -71,6 +71,8 @@ class Database(val dbName: String, val store: IStore) {
         return tables.firstOrNull { it.tblName == tableName } ?: throw DbException("table ${tableName} not found")
     }
 
+    fun listTables(): List<String> = tables.map { it.tblName }
+
     override fun toString(): String {
         return "database $dbName:\n${tables.map { "\ttable $it" }.joinToString("\n")}"
     }

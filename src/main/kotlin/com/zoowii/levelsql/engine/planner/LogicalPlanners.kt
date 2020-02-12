@@ -132,6 +132,112 @@ class CreateIndexPlanner(private val sess: DbSession, val indexName: String, val
 
 }
 
+// 查询数据库列表的算子
+class ShowDatabasesPlanner(private val sess: DbSession) : LogicalPlanner(sess) {
+    private var executed = false
+    override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
+        if(executed) {
+            fetchTask.submitSourceEnd()
+            return
+        }
+        val databases = sess.engine.listDatabases()
+        val rows = mutableListOf<Row>()
+        for(dbName in databases) {
+            val row = Row()
+            row.data = listOf(Datum(DatumTypes.kindString, stringValue = dbName))
+            rows.add(row)
+        }
+        val chunk = Chunk().replaceRows(rows)
+        executed = true
+        fetchTask.submitChunk(chunk)
+    }
+
+    override fun afterChildrenTasksSubmitted(fetchTask: FetchTask, childrenFetchFutures: List<Future<FetchTask>>) {
+
+    }
+
+    override fun afterChildrenTasksDone(fetchTask: FetchTask, childrenFetchTasks: List<FetchTask>) {
+        simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+    }
+
+    override fun setSelfOutputNames() {
+        setOutputNames(listOf("name"))
+    }
+
+}
+
+// 查询数据库中table列表的算子
+class ShowTablesPlanner(private val sess: DbSession) : LogicalPlanner(sess) {
+    private var executed = false
+    override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
+        if(executed) {
+            fetchTask.submitSourceEnd()
+            return
+        }
+        val db = sess.db
+        if(db == null) {
+            fetchTask.submitError("please select a db first")
+            return
+        }
+        val tables = db.listTables()
+        val rows = mutableListOf<Row>()
+        for(tblName in tables) {
+            val row = Row()
+            row.data = listOf(Datum(DatumTypes.kindString, stringValue = tblName))
+            rows.add(row)
+        }
+        val chunk = Chunk().replaceRows(rows)
+        executed = true
+        fetchTask.submitChunk(chunk)
+    }
+
+    override fun afterChildrenTasksSubmitted(fetchTask: FetchTask, childrenFetchFutures: List<Future<FetchTask>>) {
+
+    }
+
+    override fun afterChildrenTasksDone(fetchTask: FetchTask, childrenFetchTasks: List<FetchTask>) {
+        simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+    }
+
+    override fun setSelfOutputNames() {
+        setOutputNames(listOf("name"))
+    }
+
+}
+
+// 设置数据库参数的算子
+class SetDbParamPlanner(private val sess: DbSession, val paramName: String, val expr: Expr) : LogicalPlanner(sess) {
+    private var executed = false
+
+    override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
+        if(executed) {
+            fetchTask.submitSourceEnd()
+            return
+        }
+        // TODO: 设置数据库系统的参数. 目前忽略不计,简单输出 expr结果
+        val chunk = Chunk()
+        chunk.rows = mutableListOf(Row())
+        val paramValue = expr.eval(chunk, listOf())[0]
+        val row = Row()
+        chunk.rows[0].data = listOf(paramValue)
+        executed = true
+        fetchTask.submitChunk(chunk)
+    }
+
+    override fun afterChildrenTasksSubmitted(fetchTask: FetchTask, childrenFetchFutures: List<Future<FetchTask>>) {
+
+    }
+
+    override fun afterChildrenTasksDone(fetchTask: FetchTask, childrenFetchTasks: List<FetchTask>) {
+        simplePassChildrenTasks(fetchTask, childrenFetchTasks)
+    }
+
+    override fun setSelfOutputNames() {
+        setOutputNames(listOf("rows"))
+    }
+
+}
+
 // insert记录的planner
 class InsertPlanner(private val sess: DbSession, val tblName: String, val columns: List<String>,
                     val rows: List<List<Token>>) : LogicalPlanner(sess) {

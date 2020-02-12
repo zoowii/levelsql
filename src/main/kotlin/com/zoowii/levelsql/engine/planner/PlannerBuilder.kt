@@ -2,6 +2,7 @@ package com.zoowii.levelsql.engine.planner
 
 import com.zoowii.levelsql.*
 import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.exceptions.SqlParseException
 import com.zoowii.levelsql.sql.ast.*
 import java.sql.SQLException
 
@@ -140,6 +141,22 @@ object PlannerBuilder {
                 stmt as CreateIndexStatement
                 val unique = false // 当前索引都按非unique索引处理
                 return CreateIndexPlanner(session, stmt.indexName, stmt.tblName, stmt.columns, unique)
+            }
+            SetStatement::class.java -> {
+                stmt as SetStatement
+                return SetDbParamPlanner(session, stmt.paramName, stmt.expr)
+            }
+            ShowStatement::class.java -> {
+                stmt as ShowStatement
+                when{
+                    stmt.isShowDatabasesStmt() -> {
+                        return ShowDatabasesPlanner(session)
+                    }
+                    stmt.isShowTablesStmt() -> {
+                        return ShowTablesPlanner(session)
+                    }
+                    else -> throw SqlParseException("invalid show statement $stmt")
+                }
             }
             // TODO: 其他SQL AST节点类型
             else -> {

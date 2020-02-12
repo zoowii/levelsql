@@ -16,3 +16,4 @@ target
 /table_tests_local
 /engine_tests_local
 /planner_tests_local
+/mysql_tests_local

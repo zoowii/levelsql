@@ -15,6 +15,9 @@ class ShowStatement(val line: Int, val showedInfo: String) : Node {
     override fun toString(): String {
         return "show $showedInfo"
     }
+
+    fun isShowDatabasesStmt(): Boolean = showedInfo.toLowerCase().equals("databases")
+    fun isShowTablesStmt(): Boolean = showedInfo.toLowerCase().equals("tables")
 }
 
 class CreateDatabaseStatement(val line: Int, val dbName: String) : Node {
@@ -44,6 +47,12 @@ class CreateIndexStatement(val line: Int, val indexName: String, val tblName: St
 class DescribeTableStatement(val line: Int, val tblName: String) : Node {
     override fun toString(): String {
         return "describle table $tblName"
+    }
+}
+
+class SetStatement(val line: Int, val paramName: String, val expr: Expr) : Node {
+    override fun toString(): String {
+        return "set $paramName = $expr"
     }
 }
 

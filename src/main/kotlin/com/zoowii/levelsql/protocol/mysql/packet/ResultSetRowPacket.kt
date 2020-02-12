@@ -4,8 +4,10 @@ import com.zoowii.levelsql.protocol.mysql.MysqlPacket
 import com.zoowii.levelsql.protocol.mysql.ProtoStreamReader
 import com.zoowii.levelsql.protocol.mysql.ProtoStreamWriter
 
-class ResultSetRowPacket(val columnCount: Int) : MysqlPacket() {
+class ResultSetRowPacket : MysqlPacket() {
     private val NULL_MARK = 251.toByte()
+
+    var columnCount: Int = 0
     var columnValues: MutableList<ByteArray?> = mutableListOf()
 
 

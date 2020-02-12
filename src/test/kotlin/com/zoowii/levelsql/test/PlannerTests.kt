@@ -72,6 +72,7 @@ class PlannerTests {
 
         println("engine saved $engine")
         println("db saved $db")
+        engine.shutdown()
     }
 
     @Test fun testSimpleSelectWithJoinLogicalPlanner() {
@@ -133,6 +134,7 @@ class PlannerTests {
             val sql = "insert into person (id, name) values (1, 'person-1'), (2, 'person-2'), (3, 'person-3')"
             engine.executeSQL(session, sql)
         }
+        engine.shutdown()
     }
 
     @Test fun testInsertSqlLogicalPlanner() {
@@ -149,6 +151,7 @@ class PlannerTests {
             val sql = "insert into person (id, name) values (1, 'person-1'), (2, 'person-2'), (3, 'person-3')"
             engine.executeSQL(session, sql)
         }
+        engine.shutdown()
     }
 
     @Test fun testProductSqlLogicalPlanner() {
@@ -160,6 +163,7 @@ class PlannerTests {
         session.useDb("test")
         val sql1 = "select * from employee, person"
         engine.executeSQL(session, sql1)
+        engine.shutdown()
     }
 
     @Test fun testLimitSqlLogicalPlanner() {
@@ -171,6 +175,7 @@ class PlannerTests {
         session.useDb("test")
         val sql1 = "select * from employee, person limit 2,2"
         engine.executeSQL(session, sql1)
+        engine.shutdown()
     }
 
     @Test fun testAggregateSqlLogicalPlanner() {
@@ -182,5 +187,6 @@ class PlannerTests {
         session.useDb("test")
         val sql1 = "select sum(age), count(age), max(age), min(age) from employee, person where id > 0 limit 2,2"
         engine.executeSQL(session, sql1)
+        engine.shutdown()
     }
 }

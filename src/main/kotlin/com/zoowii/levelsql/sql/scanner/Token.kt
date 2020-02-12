@@ -9,65 +9,8 @@ val endOfStream: Rune = -1
 val maxInt: Long = Long.MAX_VALUE
 val maxUint8 = 1.shl(8) - 1
 
-object TokenTypes {
-    val tkDescribe: Rune = 0 + firstReserved
-    val tkShow: Rune = 1 + firstReserved
-    val tkCreate: Rune = 2 + firstReserved
-    val tkDrop: Rune = 3 + firstReserved
-    val tkDatabase: Rune = 4 + firstReserved
-    val tkTable: Rune = 5 + firstReserved
-    val tkIndex: Rune = 6 + firstReserved
-    val tkSelect: Rune = 7 + firstReserved
-    val tkInsert: Rune = 8 + firstReserved
-    val tkUpdate: Rune = 9 + firstReserved
-    val tkDelete: Rune = 10 + firstReserved
-    val tkAlter: Rune = 11 + firstReserved
-    val tkAnd: Rune = 12 + firstReserved
-    val tkOr: Rune = 13 + firstReserved
-    val tkWhere: Rune = 14 + firstReserved
-    val tkOrder: Rune = 15 + firstReserved
-    val tkBy: Rune = 16 + firstReserved
-    val tkAsc: Rune = 17 + firstReserved
-    val tkDesc: Rune = 18 + firstReserved
-    val tkFrom: Rune = 19 + firstReserved
-    val tkJoin: Rune = 20 + firstReserved
-    val tkUnion: Rune = 21 + firstReserved
-    val tkLeft: Rune = 22 + firstReserved
-    val tkRight: Rune = 23 + firstReserved
-    val tkInner: Rune = 24 + firstReserved
-    val tkOuter: Rune = 25 + firstReserved
-    val tkFull: Rune = 26 + firstReserved
-    val tkInto: Rune = 27 + firstReserved
-    val tkDefault: Rune = 28 + firstReserved
-    val tkPrimary: Rune = 29 + firstReserved
-    val tkKey: Rune = 30 + firstReserved
-    val tkAutoIncrement: Rune = 31 + firstReserved
-    val tkValues: Rune = 32 + firstReserved
-    val tkSet: Rune = 33 + firstReserved
-    val tkExplain: Rune = 34 + firstReserved
-    val tkOn: Rune = 35 + firstReserved
-    val tkAdd: Rune = 36 + firstReserved
-    val tkColumn: Rune = 37 + firstReserved
-    val tkGroup: Rune = 38 + firstReserved
-    val tkLimit: Rune = 39 + firstReserved
-    val tkTrue: Rune = 40 + firstReserved
-    val tkFalse: Rune = 41 + firstReserved
-    val tkNot: Rune = 42 + firstReserved
-    val tkNull: Rune = 43 + firstReserved
-    val tkGe: Rune = 44 + firstReserved
-    val tkLe: Rune = 45 + firstReserved
-    val tkNe: Rune = 46 + firstReserved
-    val tkGL: Rune = 47 + firstReserved // less or great than, 等价于 !=
-    val tkNumber: Rune = 48 + firstReserved
-    val tkInt: Rune = 49 + firstReserved
-    val tkName: Rune = 50 + firstReserved
-    val tkString: Rune = 51 + firstReserved
-    val tkEOS: Rune = 52 + firstReserved
-
-    val reservedCount: Rune = tkEOS - firstReserved + 1 // 保留关键字的数量
-}
-
-val tokens = arrayOf("describe", "show", "create", "drop", "database", "table", "index",
+// SQL语法中的关键字
+val reservedTokens = arrayOf("describe", "show", "create", "drop", "database", "table", "index",
         "select", "insert", "update", "delete", "alter", "and", "or", "where",
         "order", "by", "asc", "desc", "from", "join", "union", "left", "right", "inner", "outer", "full",
         "into", "default", "primary", "key", "auto_increment", "values", "set",
@@ -75,6 +18,71 @@ val tokens = arrayOf("describe", "show", "create", "drop", "database", "table", 
         "not", "null",
         ">=", "<=", "!=", "<>",
         "<number>", "<int>", "<name>", "<string>", "<eof>")
+
+private fun reservedTokenTypeByName(symbol: String): Rune {
+    return reservedTokens.indexOf(symbol) + firstReserved
+}
+
+object TokenTypes {
+    val tkDescribe: Rune = reservedTokenTypeByName("describe")
+    val tkShow: Rune = reservedTokenTypeByName("show")
+    val tkCreate: Rune = reservedTokenTypeByName("create")
+    val tkDrop: Rune = reservedTokenTypeByName("drop")
+    val tkDatabase: Rune = reservedTokenTypeByName("database")
+    val tkTable: Rune = reservedTokenTypeByName("table")
+    val tkIndex: Rune = reservedTokenTypeByName("index")
+    val tkSelect: Rune = reservedTokenTypeByName("select")
+    val tkInsert: Rune = reservedTokenTypeByName("insert")
+    val tkUpdate: Rune = reservedTokenTypeByName("update")
+    val tkDelete: Rune = reservedTokenTypeByName("delete")
+    val tkAlter: Rune = reservedTokenTypeByName("alter")
+    val tkAnd: Rune = reservedTokenTypeByName("and")
+    val tkOr: Rune = reservedTokenTypeByName("or")
+    val tkWhere: Rune = reservedTokenTypeByName("where")
+    val tkOrder: Rune = reservedTokenTypeByName("order")
+    val tkBy: Rune = reservedTokenTypeByName("by")
+    val tkAsc: Rune = reservedTokenTypeByName("asc")
+    val tkDesc: Rune = reservedTokenTypeByName("desc")
+    val tkFrom: Rune = reservedTokenTypeByName("from")
+    val tkJoin: Rune = reservedTokenTypeByName("join")
+    val tkUnion: Rune = reservedTokenTypeByName("union")
+    val tkLeft: Rune = reservedTokenTypeByName("left")
+    val tkRight: Rune = reservedTokenTypeByName("right")
+    val tkInner: Rune = reservedTokenTypeByName("inner")
+    val tkOuter: Rune = reservedTokenTypeByName("outer")
+    val tkFull: Rune = reservedTokenTypeByName("full")
+    val tkInto: Rune = reservedTokenTypeByName("into")
+    val tkDefault: Rune = reservedTokenTypeByName("default")
+    val tkPrimary: Rune = reservedTokenTypeByName("primary")
+    val tkKey: Rune = reservedTokenTypeByName("key")
+    val tkAutoIncrement: Rune = reservedTokenTypeByName("auto_increment")
+    val tkValues: Rune = reservedTokenTypeByName("values")
+    val tkSet: Rune = reservedTokenTypeByName("set")
+    val tkExplain: Rune = reservedTokenTypeByName("explain")
+    val tkOn: Rune = reservedTokenTypeByName("on")
+    val tkAdd: Rune = reservedTokenTypeByName("add")
+    val tkColumn: Rune = reservedTokenTypeByName("column")
+    val tkGroup: Rune = reservedTokenTypeByName("group")
+    val tkLimit: Rune = reservedTokenTypeByName("limit")
+    val tkTrue: Rune = reservedTokenTypeByName("true")
+    val tkFalse: Rune = reservedTokenTypeByName("false")
+    val tkNot: Rune = reservedTokenTypeByName("not")
+    val tkNull: Rune = reservedTokenTypeByName("null")
+    val tkGe: Rune = reservedTokenTypeByName(">=")
+    val tkLe: Rune = reservedTokenTypeByName("<=")
+    val tkNe: Rune = reservedTokenTypeByName("!=")
+    val tkGL: Rune = reservedTokenTypeByName("<>") // less or great than, 等价于 !=
+    val tkNumber: Rune = reservedTokenTypeByName("<number>")
+    val tkInt: Rune = reservedTokenTypeByName("<int>")
+    val tkName: Rune = reservedTokenTypeByName("<name>")
+    val tkString: Rune = reservedTokenTypeByName("<string>")
+    val tkEOS: Rune = reservedTokenTypeByName("<eof>")
+
+    val reservedCount: Rune = tkGL - firstReserved + 1 // 保留关键字的数量
+
+}
+
+
 
 // t: 当前的symbol token或者字符
 // i: 当前的整数
@@ -99,10 +107,10 @@ class Token(var t: Rune, var i: Long?=null, var n: BigDecimal?=null, var s: Stri
                 return t.toChar().toString()
             }
             t < TokenTypes.tkEOS -> {
-                return "'${tokens[t - firstReserved]}'"
+                return "'${reservedTokens[t - firstReserved]}'"
             }
         }
-        return tokens[t - firstReserved]
+        return reservedTokens[t - firstReserved]
     }
 
     fun isLiteralValue(): Boolean {

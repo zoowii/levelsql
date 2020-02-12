@@ -8,14 +8,14 @@ import java.util.*
 
 // HandshakeResponse41
 class HandshakeResponsePacket : MysqlPacket() {
-    private var authPluginName: String? = null
-    private var authResponse: String? = null
-    private var capabilities: Long = 0
-    private var characterSet: Byte = 0
-    private var connectAttributes: MutableMap<String, String>? = null
-    private var database: String? = null
-    private var maxPacketSize = 0
-    private var username: String? = null
+    var authPluginName: String? = null
+    var authResponse: String? = null
+    var capabilities: Long = 0
+    var characterSet: Byte = 0
+    var connectAttributes: MutableMap<String, String>? = null
+    var database: String? = null
+    var maxPacketSize = 0
+    var username: String? = null
 
     private fun isCapabilitySet(capability: Long): Boolean {
         return (capabilities and capability) != 0.toLong()

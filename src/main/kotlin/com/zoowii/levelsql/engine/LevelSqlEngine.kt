@@ -6,6 +6,8 @@ import com.zoowii.levelsql.engine.store.*
 import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import com.zoowii.levelsql.engine.utils.logger
 import com.zoowii.levelsql.engine.planner.PlannerBuilder
+import com.zoowii.levelsql.engine.types.Chunk
+import com.zoowii.levelsql.engine.types.SqlResultSet
 import com.zoowii.levelsql.sql.parser.SqlParser
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -73,6 +75,10 @@ class LevelSqlEngine(val store: IStore) {
         return databases.firstOrNull { it.dbName == dbName } ?: throw DbException("database ${dbName} not found")
     }
 
+    fun listDatabases(): List<String> {
+        return databases.map { it.dbName }
+    }
+
     fun containsDatabase(dbName: String): Boolean {
         return databases.any { it.dbName == dbName }
     }
@@ -87,15 +93,22 @@ class LevelSqlEngine(val store: IStore) {
         return sess
     }
 
+    val dbExecutor = DbExecutor()
+
+    fun shutdown() {
+        dbExecutor.shutdown()
+    }
+
     // 解析执行SQL语句的API
-    fun executeSQL(session: DbSession, sqls: String) {
+    fun executeSQL(session: DbSession, sqls: String): SqlResultSet {
         if (session != sessions.getOrDefault(session.id, null)) {
             throw SQLException("not active db session")
         }
         val input = ByteArrayInputStream(sqls.toByteArray())
         val parser = SqlParser("session-${session.id}", input)
         parser.parse()
-        val dbExecutor = DbExecutor()
+
+        var lastSqlResult = SqlResultSet()
         val stmts = parser.getStatements()
         // 把stmts各SQL语句依次转成planner交给executor处理
         for (stmt in stmts) {
@@ -107,9 +120,11 @@ class LevelSqlEngine(val store: IStore) {
             // TODO: physical planner optimize
             // use executor to execute planner
             val chunk = dbExecutor.executePlanner(logicalPlanner)
+            lastSqlResult.columns = logicalPlanner.getOutputNames()
+            lastSqlResult.chunk = chunk
             log.debug("result:\n${logicalPlanner.getOutputNames().joinToString("\t")}\n${chunk.rows.joinToString("\n")}")
         }
-        dbExecutor.shutdown()
+        return lastSqlResult
     }
 
 }

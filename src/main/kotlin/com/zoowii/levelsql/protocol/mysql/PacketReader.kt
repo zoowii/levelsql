@@ -36,7 +36,7 @@ class PacketReader(private val context: Context) : Closeable {
                 MysqlPacket.CMD_SLEEP -> SleepPacket::class.java
                 MysqlPacket.CMD_QUIT -> QuitPacket::class.java
                 MysqlPacket.CMD_QUERY -> QueryPacket::class.java
-                else -> throw IOException("not implemented packet type for seq id $cmdFlag")
+                else -> throw IOException("not implemented packet type for cmd type $cmdFlag")
             }
         }
         log.debug("receiving packet ${cls.canonicalName}")

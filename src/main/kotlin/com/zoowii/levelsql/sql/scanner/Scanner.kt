@@ -415,7 +415,7 @@ class Scanner(private val source: String, private val reader: InputStream) {
     }
 
     fun isReserved(s: String): Boolean {
-        for (reserved in Arrays.copyOf(tokens, reservedCount)) {
+        for (reserved in Arrays.copyOf(reservedTokens, reservedCount)) {
             if (s == reserved) {
                 return true
             }
@@ -426,8 +426,8 @@ class Scanner(private val source: String, private val reader: InputStream) {
     fun reservedOrName(): Token {
         val str = buffer.toString("UTF-8")
         buffer.reset()
-        for ((i, reserved) in Arrays.copyOf(tokens, reservedCount).withIndex()) {
-            if (str == reserved) {
+        for ((i, reserved) in Arrays.copyOf(reservedTokens, reservedCount).withIndex()) {
+            if (str == reserved || str.toLowerCase() == reserved) { // SQL语法关键字大小写不敏感
                 return Token(i + firstReserved, null, null, reserved)
             }
         }

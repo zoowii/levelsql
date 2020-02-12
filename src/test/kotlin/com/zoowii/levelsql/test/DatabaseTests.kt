@@ -34,6 +34,7 @@ class DatabaseTests {
         db.saveMeta()
         println("engine saved $engine")
         println("db saved $db")
+        engine.shutdown()
     }
 
     @Test fun testLoadEngine() {
@@ -42,5 +43,6 @@ class DatabaseTests {
         println("engine: $engine")
         val testDb = engine.openDatabase("test")
         println("test db: $testDb")
+        engine.shutdown()
     }
 }

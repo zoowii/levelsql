@@ -12,6 +12,8 @@ class Context(val inputStream: InputStream, val outputStream: OutputStream) {
     var capabilities: Long = 0
     var status: Int = 0
 
+    var currentDb: String? = null
+
     private var seqIdGen: Byte = 0
 
     fun setLastSeqId(seqId: Byte) {
