@@ -4,6 +4,7 @@ import com.zoowii.levelsql.protocol.mysql.MysqlPacket
 import com.zoowii.levelsql.protocol.mysql.ProtoStreamReader
 import com.zoowii.levelsql.protocol.mysql.ProtoStreamWriter
 
+// https://dev.mysql.com/doc/internals/en/com-query-response.html#text-resultset
 class ResultSetRowPacket : MysqlPacket() {
     private val NULL_MARK = 251.toByte()
 

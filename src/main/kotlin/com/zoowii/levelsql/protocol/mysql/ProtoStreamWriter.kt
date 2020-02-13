@@ -2,6 +2,7 @@ package com.zoowii.levelsql.protocol.mysql
 
 import java.util.*
 
+
 class ProtoStreamWriter @JvmOverloads constructor(initialCapacity: Int = DEFAULT_CAPACITY) {
     private var bytes: ByteArray
     private var offset = 0
@@ -91,10 +92,10 @@ class ProtoStreamWriter @JvmOverloads constructor(initialCapacity: Int = DEFAULT
     fun putLengthEncodedInt(value: Long): ProtoStreamWriter {
         if (value < 251) {
             putInt1(value.toByte())
-        } else if (value <= 65536) {
+        } else if (value < 0x10000L) {
             putInt1(0xFC.toByte())
             putInt2(value.toShort())
-        } else if (value <= 16777216) {
+        } else if (value < 0x1000000L) {
             putInt1(0xFD.toByte())
             putInt3(value.toInt())
         } else {
@@ -132,6 +133,32 @@ class ProtoStreamWriter @JvmOverloads constructor(initialCapacity: Int = DEFAULT
         System.arraycopy(data, 0, bytes, offset, data.size)
         offset += data.size
         return this
+    }
+
+    fun writeWithLength(src: ByteArray) {
+        val length: Int = src.size
+        if (length < 251) {
+            putInt1(length.toByte())
+        } else if (length < 0x10000L) {
+            putInt1(0xFC.toByte())
+            putInt2(length.toShort())
+        } else if (length < 0x1000000L) {
+            putInt1(0xFD.toByte())
+            putInt3(length)
+        } else {
+            putInt1(0xFE.toByte())
+            putInt8(length.toLong())
+        }
+        putBytes(src)
+    }
+
+    fun writeWithLength(src: ByteArray?,
+                        nullValue: Byte) {
+        if (src == null) {
+            putInt1(nullValue)
+        } else {
+            writeWithLength(src)
+        }
     }
 
     companion object {

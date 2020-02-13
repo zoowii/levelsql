@@ -233,7 +233,7 @@ class SetDbParamPlanner(private val sess: DbSession, val paramName: String, val 
     }
 
     override fun setSelfOutputNames() {
-        setOutputNames(listOf("rows"))
+        setOutputNames(listOf())
     }
 
 }

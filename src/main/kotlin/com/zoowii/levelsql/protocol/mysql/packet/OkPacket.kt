@@ -5,7 +5,7 @@ import java.io.IOException
 
 class OkPacket : MysqlPacket() {
     var affectedRows: Long = 0
-    var info: String? = null
+    var info: String? = ""
     var lastInsertId: Long = 0
     var sessionStateInfo: String? = null
     var statusFlags: Short = 0

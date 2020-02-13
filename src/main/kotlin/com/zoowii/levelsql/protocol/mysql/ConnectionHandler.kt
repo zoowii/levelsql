@@ -53,8 +53,10 @@ class ConnectionHandler(val server: MysqlServer, val inputStream: InputStream, v
                 break
             }
             context.setLastSeqId(cmdPacket.sequenceId)
-            val respPacket = server.getDispatcher().dispatchCommand(context, cmdPacket)
-            context.send(respPacket)
+            val respPackets = server.getDispatcher().dispatchCommand(context, cmdPacket)
+            for(respPacket in respPackets) {
+                context.send(respPacket)
+            }
         }
         // TODO: 权限认证和依次处理请求的packet直到连接关闭
     }

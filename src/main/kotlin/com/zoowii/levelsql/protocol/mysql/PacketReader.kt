@@ -32,6 +32,9 @@ class PacketReader(private val context: Context) : Closeable {
                 throw IOException("need receive command type")
             }
             cmdFlag = input.read().toByte()
+            if(cmdFlag == (-1).toByte()) {
+                return QuitPacket()
+            }
             cls = when(cmdFlag) {
                 MysqlPacket.CMD_SLEEP -> SleepPacket::class.java
                 MysqlPacket.CMD_QUIT -> QuitPacket::class.java
