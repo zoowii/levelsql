@@ -1,6 +1,5 @@
 package com.zoowii.levelsql.engine
 
-import com.zoowii.levelsql.TableColumnDefinition
 import com.zoowii.levelsql.engine.exceptions.DbException
 import com.zoowii.levelsql.engine.store.*
 import com.zoowii.levelsql.engine.utils.ByteArrayStream

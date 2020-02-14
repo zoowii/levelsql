@@ -44,6 +44,11 @@ class ConnectionHandler(val server: MysqlServer, val inputStream: InputStream, v
 
         context.currentDb = handshakeResponse.database
 
+        val sess = server.getEngine().createSession()
+        if(context.currentDb != null) {
+            sess.useDb(context.currentDb!!)
+        }
+
         // start command phase
         while(true) {
             val cmdPacket = context.receiveCmdType()
@@ -53,7 +58,7 @@ class ConnectionHandler(val server: MysqlServer, val inputStream: InputStream, v
                 break
             }
             context.setLastSeqId(cmdPacket.sequenceId)
-            val respPackets = server.getDispatcher().dispatchCommand(context, cmdPacket)
+            val respPackets = server.getDispatcher().dispatchCommand(context, sess, cmdPacket)
             for(respPacket in respPackets) {
                 context.send(respPacket)
             }

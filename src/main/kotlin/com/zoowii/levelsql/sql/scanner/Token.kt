@@ -13,7 +13,7 @@ val maxUint8 = 1.shl(8) - 1
 val reservedTokens = arrayOf("describe", "show", "create", "drop", "database", "table", "index",
         "select", "insert", "update", "delete", "alter", "and", "or", "where",
         "order", "by", "asc", "desc", "from", "join", "union", "left", "right", "inner", "outer", "full",
-        "into", "default", "primary", "key", "auto_increment", "values", "set",
+        "into", "default", "primary", "key", "auto_increment", "values", "set", "use",
         "explain", "on", "add", "column", "group", "limit", "true", "false",
         "not", "null",
         ">=", "<=", "!=", "<>",
@@ -58,6 +58,7 @@ object TokenTypes {
     val tkAutoIncrement: Rune = reservedTokenTypeByName("auto_increment")
     val tkValues: Rune = reservedTokenTypeByName("values")
     val tkSet: Rune = reservedTokenTypeByName("set")
+    val tkUse: Rune = reservedTokenTypeByName("use")
     val tkExplain: Rune = reservedTokenTypeByName("explain")
     val tkOn: Rune = reservedTokenTypeByName("on")
     val tkAdd: Rune = reservedTokenTypeByName("add")

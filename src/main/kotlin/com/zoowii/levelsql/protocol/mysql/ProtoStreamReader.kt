@@ -2,7 +2,7 @@ package com.zoowii.levelsql.protocol.mysql
 
 import kotlin.experimental.and
 
-
+// https://dev.mysql.com/doc/internals/en/describing-packets.html#type-lenenc_str
 class ProtoStreamReader(private val buff: ByteArray) {
     private val NULL_LENGTH: Long = -1
 

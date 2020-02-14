@@ -1,4 +1,4 @@
-levelsql
+LevelSQL
 ========
 
 simple relational sql database stored on everything(disk file, leveldb, redis, oss, etc.)
@@ -21,11 +21,13 @@ simple relational sql database stored on everything(disk file, leveldb, redis, o
 
 # TODO
 * performance test
+* transaction
 * physical optimizer
 * skiplist based index in memory
 * LSM based store and index
 
 # Core Components
+* MySQL protocol(基于TCP的MySQL网络协议，可以通过MySQL客户端驱动使用LevelSQL)
 * SQL parser(SQL语法解析器)
 * disk-based B-plus tree(基于慢存储的B+树的实现)
 * ordered KV store APIs(有序KV的IStore)
@@ -33,11 +35,35 @@ simple relational sql database stored on everything(disk file, leveldb, redis, o
 * logical planners and planner builder(将SQL抽象语法树转换成一个执行计划树)
 * planner optimizer(执行计划的优化器，比如将表检索planner转换成索引查找planner等优化)
 * planner executor(执行计划的执行器)
-* MySQL protocol(基于TCP的MySQL网络协议，可以通过MySQL客户端驱动使用LevelSQL)
 
 # Example
 
-* create
+* You can use LevelSQL as a mysql server or as a library(embedded sql engine)
+
+* If you use LevelSQL as mysql server, you can use any existed mysql client/driver to connect to it
+
+``` 
+eg.
+# start levelsql server
+java -jar levelsql.jar -d data_dir -h 127.0.0.1 -p 3000
+
+# use levelsql by Python and pymysql(or use can use Java+JDBC or any other mysql client/driver)
+import pymysql
+
+db = pymysql.connect(host='127.0.0.1', port=3000, db='test', user='test', passwd='pass')
+
+cur = db.cursor()
+cur.execute('show databases')
+data = cur.fetchall()
+print('databases', data)
+
+cur.execute('use test')
+cur.execute('select * from employee')
+data = cur.fetchall()
+print('employees', data)
+```
+
+* create database/table/index(as a library)
 ``` 
 run {
     val session = engine.createSession()

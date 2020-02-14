@@ -1,11 +1,9 @@
 package com.zoowii.levelsql.engine
 
-import com.zoowii.levelsql.TableColumnDefinition
 import com.zoowii.levelsql.engine.exceptions.DbException
 import com.zoowii.levelsql.engine.exceptions.IndexException
 import com.zoowii.levelsql.engine.index.IndexLeafNodeValue
 import com.zoowii.levelsql.engine.index.IndexNodeValue
-import com.zoowii.levelsql.engine.index.IndexTree
 import com.zoowii.levelsql.engine.index.datumsToIndexKey
 import com.zoowii.levelsql.engine.store.RowId
 import com.zoowii.levelsql.engine.store.toBytes

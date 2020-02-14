@@ -3,13 +3,18 @@ package com.zoowii.levelsql.protocol.mysql
 import com.zoowii.levelsql.engine.LevelSqlEngine
 import com.zoowii.levelsql.engine.store.LocalFileStore
 import com.zoowii.levelsql.protocol.mysql.exceptions.ServerException
+import com.zoowii.levelsql.engine.utils.logger
 import java.io.File
 import java.lang.Exception
+import java.net.InetSocketAddress
 import java.net.ServerSocket
+import java.net.SocketAddress
 import java.util.concurrent.Executors
 
 // 实现mysql的基于TCP的接口协议
 class MysqlServer {
+    private val log = logger()
+
     private val serverExecutor = Executors.newCachedThreadPool()
 
     private val dispatcher = CommandDispatcher(this)
@@ -34,11 +39,13 @@ class MysqlServer {
 
     fun getEngine() = engine ?: throw ServerException("db engine not init")
 
-    fun startLoop(port: Int) {
+    fun startLoop(host: String, port: Int) {
         engine ?: throw ServerException("db engine not init")
+        log.info("starting levelsql server on $host:$port")
 
         // 为简化实现，目前这里用阻塞连接的方式，以后可以改用nio或者netty
-        val serverSocket = ServerSocket(port)
+        val serverSocket = ServerSocket()
+        serverSocket.bind(InetSocketAddress(host, port))
         while(true) {
             val socket = serverSocket.accept()
             serverExecutor.submit({

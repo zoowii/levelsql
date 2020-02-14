@@ -1,8 +1,8 @@
 package com.zoowii.levelsql.engine.planner
 
-import com.zoowii.levelsql.*
-import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.*
 import com.zoowii.levelsql.engine.exceptions.SqlParseException
+import com.zoowii.levelsql.engine.planner.logical.*
 import com.zoowii.levelsql.sql.ast.*
 import java.sql.SQLException
 
@@ -146,6 +146,10 @@ object PlannerBuilder {
                 stmt as SetStatement
                 return SetDbParamPlanner(session, stmt.paramName, stmt.expr)
             }
+            UseStatement::class.java -> {
+                stmt as UseStatement
+                return UseDbPlanner(session, stmt.dbName)
+            }
             ShowStatement::class.java -> {
                 stmt as ShowStatement
                 when{
@@ -154,6 +158,9 @@ object PlannerBuilder {
                     }
                     stmt.isShowTablesStmt() -> {
                         return ShowTablesPlanner(session)
+                    }
+                    stmt.isShowWarningsStmt() -> {
+                        return ShowWarningsPlanner(session)
                     }
                     else -> throw SqlParseException("invalid show statement $stmt")
                 }

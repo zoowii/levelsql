@@ -2,7 +2,7 @@ package com.zoowii.levelsql.protocol.mysql
 
 import java.util.*
 
-
+// https://dev.mysql.com/doc/internals/en/describing-packets.html#type-lenenc_str
 class ProtoStreamWriter @JvmOverloads constructor(initialCapacity: Int = DEFAULT_CAPACITY) {
     private var bytes: ByteArray
     private var offset = 0

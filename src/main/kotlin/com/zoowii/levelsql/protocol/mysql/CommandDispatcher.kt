@@ -4,13 +4,14 @@ import com.zoowii.levelsql.engine.DbSession
 import com.zoowii.levelsql.engine.types.Datum
 import com.zoowii.levelsql.engine.types.DatumTypes
 import com.zoowii.levelsql.engine.types.Row
+import com.zoowii.levelsql.engine.types.SqlResultSet
 import com.zoowii.levelsql.engine.utils.logger
 import com.zoowii.levelsql.protocol.mysql.field.FieldTypes
 import com.zoowii.levelsql.protocol.mysql.packet.*
 
 class CommandDispatcher(private val server: MysqlServer) {
     private val log = logger()
-    fun dispatchCommand(context: Context, packet: MysqlCommandType): List<MysqlPacket> {
+    fun dispatchCommand(context: Context, sess: DbSession, packet: MysqlCommandType): List<MysqlPacket> {
         when(packet.javaClass) {
             QueryPacket::class.java -> {
                 packet as QueryPacket
@@ -19,11 +20,19 @@ class CommandDispatcher(private val server: MysqlServer) {
 
                 // 执行SQL
                 val engine = server.getEngine()
-                val sess = engine.createSession()
-                if(context.currentDb != null) {
-                    sess.useDb(context.currentDb!!)
+
+                val sqlResultSet: SqlResultSet
+                try {
+                    sqlResultSet = engine.executeSQL(sess, querySql)
+                } catch(e: Exception) {
+                    log.error("engine execute sql error $e")
+                    val err = context.create(ErrPacket::class.java, context.nextSeqId())
+                    err.errorMessage = e.message
+                    err.errorCode = 10002
+                    err.sqlState = "10002"
+                    err.sqlStateMarker = "10002"
+                    return listOf(err)
                 }
-                val sqlResultSet = engine.executeSQL(sess, querySql)
                 // 把执行结果输出。要区分是查询类还是修改类的SQL
 
                 // https://dev.mysql.com/doc/internals/en/com-query-response.html#text-resultset

@@ -35,6 +35,7 @@ import com.zoowii.levelsql.sql.scanner.TokenTypes.tkSet
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkShow
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkTable
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkUpdate
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkUse
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkValues
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkWhere
 import java.io.InputStream
@@ -125,7 +126,7 @@ class SqlParser(private val source: String, private val reader: InputStream) {
                 addSqlStatement(ShowStatement(line, name))
             }
             else -> {
-                throw SqlParseException("invalid show statement")
+                addSqlStatement(ShowStatement(line, name))
             }
         }
     }
@@ -142,6 +143,12 @@ class SqlParser(private val source: String, private val reader: InputStream) {
         checkNext('=')
         val paramValueExpr = checkExpr()
         addSqlStatement(SetStatement(line, paramName, paramValueExpr))
+    }
+
+    private fun useStatement(line: Int) {
+        next()
+        val dbName = checkToken().s
+        addSqlStatement(UseStatement(line, dbName))
     }
 
     private fun createStatement(line: Int) {
@@ -628,6 +635,9 @@ class SqlParser(private val source: String, private val reader: InputStream) {
             }
             tkSet -> {
                 setStatement(line)
+            }
+            tkUse -> {
+                useStatement(line)
             }
             else -> {
                 throw SqlParseException("not support sql syntax ${scanner.currentToken()}")

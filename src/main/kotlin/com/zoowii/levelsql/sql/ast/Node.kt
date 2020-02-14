@@ -16,8 +16,9 @@ class ShowStatement(val line: Int, val showedInfo: String) : Node {
         return "show $showedInfo"
     }
 
-    fun isShowDatabasesStmt(): Boolean = showedInfo.toLowerCase().equals("databases")
-    fun isShowTablesStmt(): Boolean = showedInfo.toLowerCase().equals("tables")
+    fun isShowDatabasesStmt(): Boolean = showedInfo.toLowerCase() == "databases"
+    fun isShowTablesStmt(): Boolean = showedInfo.toLowerCase() == "tables"
+    fun isShowWarningsStmt(): Boolean = showedInfo.toLowerCase() == "warnings"
 }
 
 class CreateDatabaseStatement(val line: Int, val dbName: String) : Node {
@@ -56,6 +57,12 @@ class SetStatement(val line: Int, val paramName: String, val expr: Expr) : Node 
     }
 }
 
+class UseStatement(val line: Int, val dbName: String) : Node {
+    override fun toString(): String {
+        return "use $dbName"
+    }
+}
+
 class InsertStatement(val line: Int, val tblName: String, val columns: List<String>, val rows: List<List<Token>>) : Node {
     override fun toString(): String {
         return "insert into table $tblName (${columns.joinToString(", ")}) " +
@@ -69,7 +76,6 @@ data class ColumnHintInfo(val tblName: String?, val column: String) {
 interface Expr : Node {
     // 表达式中用到了哪些列
     fun usingColumns(): List<ColumnHintInfo>
-    // TODO: 把Row的eval方法放入这里
 
     // 向量化计算表达式的值,chunks是多行输入
     // @param headerNames 是本row各数据对应的header name
@@ -128,7 +134,7 @@ class ColumnHintExpr(val tblName: String, val column: String) : Expr {
     }
 
     override fun toString(): String {
-        if (tblName.isNullOrBlank())
+        if (tblName.isBlank())
             return column
         return "$tblName.$column"
     }

@@ -1,8 +1,8 @@
 package com.zoowii.levelsql.test
 
-import com.zoowii.levelsql.IntColumnType
-import com.zoowii.levelsql.TableColumnDefinition
-import com.zoowii.levelsql.VarCharColumnType
+import com.zoowii.levelsql.engine.IntColumnType
+import com.zoowii.levelsql.engine.TableColumnDefinition
+import com.zoowii.levelsql.engine.VarCharColumnType
 import com.zoowii.levelsql.engine.LevelSqlEngine
 import com.zoowii.levelsql.engine.store.IStore
 import com.zoowii.levelsql.engine.store.LocalFileStore

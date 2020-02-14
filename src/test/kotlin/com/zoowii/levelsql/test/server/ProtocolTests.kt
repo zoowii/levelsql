@@ -8,12 +8,13 @@ import java.sql.DriverManager
 class ProtocolTests {
     private val log = logger()
 
+    private val host = "127.0.0.1"
     private val port = 3000
     @Test fun testStartMysqlServer() {
         val server = MysqlServer()
         server.initServer("./planner_tests_local")
         log.debug("starting mysql protocol at localhost:$port")
-        server.startLoop(port)
+        server.startLoop(host, port)
     }
 
     @Test fun testConnectToMysql() {

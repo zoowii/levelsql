@@ -1,4 +1,4 @@
-package com.zoowii.levelsql
+package com.zoowii.levelsql.engine
 
 import com.zoowii.levelsql.engine.exceptions.DbException
 import com.zoowii.levelsql.engine.store.*

@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine
 
 import com.zoowii.levelsql.engine.exceptions.DbException
+import com.zoowii.levelsql.engine.exceptions.SqlParseException
 import com.zoowii.levelsql.engine.executor.DbExecutor
 import com.zoowii.levelsql.engine.store.*
 import com.zoowii.levelsql.engine.utils.ByteArrayStream
@@ -106,7 +107,11 @@ class LevelSqlEngine(val store: IStore) {
         }
         val input = ByteArrayInputStream(sqls.toByteArray())
         val parser = SqlParser("session-${session.id}", input)
-        parser.parse()
+        try {
+            parser.parse()
+        } catch(e: SqlParseException) {
+            throw SQLException(e)
+        }
 
         var lastSqlResult = SqlResultSet()
         val stmts = parser.getStatements()
