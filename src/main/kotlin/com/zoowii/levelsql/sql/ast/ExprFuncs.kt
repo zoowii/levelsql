@@ -150,6 +150,32 @@ class ArithAddExprFunc : ArithBinExprFunc() {
     }
 }
 
+class BoolAndExprFunc : ArithBinExprFunc() {
+    override fun applyArithCompute(column1: List<Datum>, column2: List<Datum>): List<Datum> {
+        val rowsCount = minOf(column1.size, column2.size)
+        val result = mutableListOf<Datum>()
+        for(i in 0 until rowsCount) {
+            assert(column1[i].kind == DatumTypes.kindBool)
+            assert(column2[i].kind == DatumTypes.kindBool)
+            result.add(Datum(DatumTypes.kindBool, boolValue = column1[i].boolValue!! and column2[i].boolValue!!))
+        }
+        return result
+    }
+}
+
+class BoolOrExprFunc : ArithBinExprFunc() {
+    override fun applyArithCompute(column1: List<Datum>, column2: List<Datum>): List<Datum> {
+        val rowsCount = minOf(column1.size, column2.size)
+        val result = mutableListOf<Datum>()
+        for(i in 0 until rowsCount) {
+            assert(column1[i].kind == DatumTypes.kindBool)
+            assert(column2[i].kind == DatumTypes.kindBool)
+            result.add(Datum(DatumTypes.kindBool, boolValue = column1[i].boolValue!! or column2[i].boolValue!!))
+        }
+        return result
+    }
+}
+
 class ArithMinusExprFunc : ArithBinExprFunc() {
     override fun applyArithCompute(column1: List<Datum>, column2: List<Datum>): List<Datum> {
         val rowsCount = minOf(column1.size, column2.size)
@@ -298,5 +324,9 @@ val arithFuncs = hashMapOf(
         Pair(TokenTypes.tkLe, ArithLeExprFunc()),
         Pair('='.toInt(), EqualExprFunc()),
         Pair(TokenTypes.tkNe, NotEqualExprFunc()),
-        Pair(TokenTypes.tkGL, NotEqualExprFunc())
+        Pair(TokenTypes.tkGL, NotEqualExprFunc()),
+
+        // bool funcs
+        Pair(TokenTypes.tkAnd, BoolAndExprFunc()),
+        Pair(TokenTypes.tkOr, BoolOrExprFunc())
 )

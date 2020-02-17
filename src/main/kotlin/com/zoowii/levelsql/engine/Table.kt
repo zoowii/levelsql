@@ -82,16 +82,26 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
             return null
         // 找到使用的列中适用于本表的列
         val maybeSelfTableColumns = columnHints.filter { it.tblName==null || it.tblName == tblName }
-                .map { it.column }
+                .map { it.column }.toSet()
         val allIndexes = listOf(primaryIndex) + secondaryIndexes
+        var maxMatchedColumnsCount = 0 // 能匹配到最多列的索引匹配到的列数
+        var maxMatchIndex: Index? = null // 最佳匹配的索引
         for(index in allIndexes) {
             assert(index.columns.isNotEmpty())
-            val indexFirstColumn = index.columns[0] // 目前只使用索引的第一列
-            if(maybeSelfTableColumns.contains(indexFirstColumn)) {
-                return index
+            var matchedColumnsCount = 0
+            for(col in index.columns) {
+                // 联合索引需要最左匹配原则，从左开始依次匹配
+                if(!maybeSelfTableColumns.contains(col)) {
+                    break
+                }
+                matchedColumnsCount++
+            }
+            if(matchedColumnsCount > maxMatchedColumnsCount) {
+                maxMatchedColumnsCount = matchedColumnsCount
+                maxMatchIndex = index
             }
         }
-        return null
+        return maxMatchIndex
     }
 
     fun openIndex(indexName: String): Index? {

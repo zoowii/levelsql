@@ -47,6 +47,7 @@ class PlannerTests {
         val employeeTable = db.createTable("employee", employeeTableColumns, "id")
         employeeTable.createIndex("employee_name_idx", listOf("name"), false)
         employeeTable.createIndex("employee_name_age_idx", listOf("name", "age"), false)
+        employeeTable.createIndex("employee_age_name_idx", listOf("age", "name"), false)
 
         db.saveMeta()
 
@@ -117,7 +118,20 @@ class PlannerTests {
         val session = engine.createSession()
         session.useDb("test")
         // 使用了二级索引和联合索引，会优化成使用二级索引并根据需要做回表查询
-        val sql1 = "select name, age, * from employee where name = 'zhang3' order by id desc" // name = 'zhang3' and age = 23
+        val sql1 = "select name, age, * from employee where name = 'zhang3' and age = 23 order by id desc"
+        engine.executeSQL(session, sql1)
+    }
+
+    @Test fun testSimpleSelectByMultiColumnsIndexButProvidePartialValuesLogicalPlanner() {
+        createSampleDb()
+        insertSampleRecords()
+        val engine = LevelSqlEngine(store!!)
+        engine.loadMeta()
+        val session = engine.createSession()
+        session.useDb("test")
+        // 使用了二级索引和联合索引，会优化成使用二级索引并根据需要做回表查询
+        // 因为用了联合索引，但是只提供了部分值(age)，还是会用对应的联合索引(age, name)，只要满足最左匹配原则
+        val sql1 = "select name, age, * from employee where age = 23 order by id desc"
         engine.executeSQL(session, sql1)
     }
 

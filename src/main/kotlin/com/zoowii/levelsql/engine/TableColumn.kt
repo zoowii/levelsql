@@ -2,6 +2,8 @@ package com.zoowii.levelsql.engine
 
 import com.zoowii.levelsql.engine.exceptions.DbException
 import com.zoowii.levelsql.engine.store.*
+import com.zoowii.levelsql.engine.types.Datum
+import com.zoowii.levelsql.engine.types.DatumTypes
 import com.zoowii.levelsql.engine.utils.ByteArrayStream
 import java.io.ByteArrayOutputStream
 
@@ -29,6 +31,7 @@ interface ColumnType {
     }
     fun baseTypeEnum(): Int
     fun toBytes(): ByteArray
+    fun defaultDatum(): Datum
 }
 
 class VarCharColumnType(val size: Int) : ColumnType {
@@ -41,6 +44,10 @@ class VarCharColumnType(val size: Int) : ColumnType {
 
     override fun toBytes(): ByteArray {
         return ColumnType.serializeColumnType(this, size)
+    }
+
+    override fun defaultDatum(): Datum {
+        return Datum(DatumTypes.kindString, stringValue = "")
     }
 
     override fun toString(): String {
@@ -58,6 +65,9 @@ class IntColumnType : ColumnType {
     override fun toBytes(): ByteArray {
         return ColumnType.serializeColumnType(this, 0)
     }
+    override fun defaultDatum(): Datum {
+        return Datum(DatumTypes.kindInt64, intValue = 0)
+    }
 
     override fun toString(): String {
         return "int"
@@ -74,6 +84,9 @@ class TextColumnType : ColumnType {
     override fun toBytes(): ByteArray {
         return ColumnType.serializeColumnType(this, 0)
     }
+    override fun defaultDatum(): Datum {
+        return Datum(DatumTypes.kindText, stringValue = "")
+    }
 
     override fun toString(): String {
         return "text"
@@ -89,6 +102,9 @@ class BoolColumnType : ColumnType {
     }
     override fun toBytes(): ByteArray {
         return ColumnType.serializeColumnType(this, 0)
+    }
+    override fun defaultDatum(): Datum {
+        return Datum(DatumTypes.kindBool, boolValue = false)
     }
 
     override fun toString(): String {

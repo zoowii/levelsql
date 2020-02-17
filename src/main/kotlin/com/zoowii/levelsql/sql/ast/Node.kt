@@ -5,6 +5,7 @@ import com.zoowii.levelsql.engine.types.Datum
 import com.zoowii.levelsql.engine.types.DatumTypes
 import com.zoowii.levelsql.sql.scanner.Token
 import com.zoowii.levelsql.sql.scanner.TokenTypes
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkAnd
 import java.lang.StringBuilder
 import java.sql.SQLException
 
@@ -80,6 +81,15 @@ interface Expr : Node {
     // 向量化计算表达式的值,chunks是多行输入
     // @param headerNames 是本row各数据对应的header name
     fun eval(chunk: Chunk, headerNames: List<String>): List<Datum>
+
+    // 是否是字面量表达式
+    fun isLiteralExpr(): Boolean {
+        if(!TokenExpr::class.java.isAssignableFrom(this.javaClass)) {
+            return false
+        }
+        this as TokenExpr
+        return this.token.isLiteralValue()
+    }
 }
 
 class ExprOp(val opToken: Token) : Expr {
@@ -207,10 +217,11 @@ class BinOpExpr(val op: ExprOp, val left: Expr, val right: Expr) : Expr {
     override fun eval(chunk: Chunk, headerNames: List<String>): List<Datum> {
         val leftValues = left.eval(chunk, headerNames)
         val rightValues = right.eval(chunk, headerNames)
-        if (!arithFuncs.containsKey(op.opToken.t)) {
+        val opTokenType = op.opToken.t
+        if (!arithFuncs.containsKey(opTokenType)) {
             throw SQLException("not supported op $op in expr")
         }
-        val func = arithFuncs[op.opToken.t]!!
+        val func = arithFuncs[opTokenType]!!
         return func.invoke(listOf(leftValues, rightValues))
     }
 
