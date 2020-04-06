@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     java
-    kotlin("jvm") version "1.2.51"
+    kotlin("jvm") version "1.3.71"
 }
 
 group = "com.zoowii"
@@ -14,6 +14,12 @@ repositories {
 
 val logbackVersion = "1.3.0-alpha5"
 
+tasks.withType<Test> {
+    this.testLogging {
+        this.showStandardStreams = true
+    }
+}
+
 dependencies {
     compile(kotlin("stdlib-jdk8"))
     testCompile("junit", "junit", "4.12")
@@ -21,7 +27,7 @@ dependencies {
 
     compile("org.iq80.leveldb", "leveldb", "0.12")
     compile("com.google.guava", "guava", "28.1-jre")
-    compile("com.alibaba", "fastjson", "1.2.60")
+    compile("com.alibaba", "fastjson", "1.2.68")
     compile("commons-cli", "commons-cli", "1.4")
 
     // slf4j

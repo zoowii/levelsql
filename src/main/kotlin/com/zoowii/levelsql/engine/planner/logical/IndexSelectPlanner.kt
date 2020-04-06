@@ -83,7 +83,7 @@ class IndexSelectPlanner(private val sess: DbSession, val tblName: String, val i
         }
         val table = sess.db!!.openTable(tblName)
         val index = table.openIndex(indexName) ?: throw SQLException("can't find index $indexName")
-        // TODO: 从filterCondExpr中构造在index的tree种seek用的KeyCondition，然后在index中搜索
+        // 从filterCondExpr中构造在index的tree种seek用的KeyCondition，然后在index中搜索
         var keyCondition: KeyCondition? = null
         // 为简化实现，目前只接受过滤条件是一项的 column op literalValue 的二元条件表达式 或者 a=xxx and b = xxx 这类 and 以及等于表达式且可以用二级索引的条件
         val compareFilterExprs = getCompareConditionsFromFilterExpr(filterCondExpr)
@@ -120,7 +120,7 @@ class IndexSelectPlanner(private val sess: DbSession, val tblName: String, val i
                 inIndexFilterExprs[leftColumnName] = right.token.getLiteralDatumValue()
             }
         }
-        // TODO: 把inIndexFilterExprs按索引的各字段顺序重新排序. 如果某些字段没有提供值，用本类型的0值填充并且keyCondition从equal condition变成 greatThanOrEqual condition
+        // 把inIndexFilterExprs按索引的各字段顺序重新排序. 如果某些字段没有提供值，用本类型的0值填充并且keyCondition从equal condition变成 greatThanOrEqual condition
         val indexColumnValues = mutableListOf<Datum>()
         var hasNotFilledColumns = false
         for (colName in index.columns) {
