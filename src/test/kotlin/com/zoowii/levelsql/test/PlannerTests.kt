@@ -11,16 +11,16 @@ import org.junit.Test
 import java.io.File
 
 class PlannerTests {
-    private var store: IStore? = null
+    // private var store: IStore? = null
 
-    private fun createSampleDb() {
-        val localDbFile = File("./planner_tests_local")
+    private fun createSampleDb(testCaseName: String): IStore {
+        val localDbFile = File("./planner_tests_local/" + testCaseName)
         if(localDbFile.exists()) {
             localDbFile.deleteRecursively()
         }
-        store = LocalFileStore.openStore(localDbFile)
+        val store = LocalFileStore.openStore(localDbFile)
 
-        val engine = LevelSqlEngine(store!!)
+        val engine = LevelSqlEngine(store)
 
         run {
             if (!engine.containsDatabase("test1")) {
@@ -74,12 +74,13 @@ class PlannerTests {
         println("engine saved $engine")
         println("db saved $db")
         engine.shutdown()
+        return store
     }
 
     @Test fun testSimpleSelectWithJoinLogicalPlanner() {
-        createSampleDb()
-        insertSampleRecords()
-        val engine = LevelSqlEngine(store!!)
+        val store = createSampleDb("testSimpleSelectWithJoinLogicalPlanner")
+        insertSampleRecords(store)
+        val engine = LevelSqlEngine(store)
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
@@ -89,9 +90,9 @@ class PlannerTests {
     }
 
     @Test fun testSimpleSelectLogicalPlanner() {
-        createSampleDb()
-        insertSampleRecords()
-        val engine = LevelSqlEngine(store!!)
+        val store = createSampleDb("testSimpleSelectLogicalPlanner")
+        insertSampleRecords(store)
+        val engine = LevelSqlEngine(store)
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
@@ -100,9 +101,9 @@ class PlannerTests {
     }
 
     @Test fun testSimpleSelectByPrimaryIndexLogicalPlanner() {
-        createSampleDb()
-        insertSampleRecords()
-        val engine = LevelSqlEngine(store!!)
+        val store = createSampleDb("testSimpleSelectByPrimaryIndexLogicalPlanner")
+        insertSampleRecords(store)
+        val engine = LevelSqlEngine(store)
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
@@ -111,9 +112,9 @@ class PlannerTests {
     }
 
     @Test fun testSimpleSelectBySecondaryIndexLogicalPlanner() {
-        createSampleDb()
-        insertSampleRecords()
-        val engine = LevelSqlEngine(store!!)
+        val store = createSampleDb("testSimpleSelectBySecondaryIndexLogicalPlanner")
+        insertSampleRecords(store)
+        val engine = LevelSqlEngine(store)
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
@@ -123,9 +124,9 @@ class PlannerTests {
     }
 
     @Test fun testSimpleSelectByMultiColumnsIndexButProvidePartialValuesLogicalPlanner() {
-        createSampleDb()
-        insertSampleRecords()
-        val engine = LevelSqlEngine(store!!)
+        val store = createSampleDb("testSimpleSelectByMultiColumnsIndexButProvidePartialValuesLogicalPlanner")
+        insertSampleRecords(store)
+        val engine = LevelSqlEngine(store)
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
@@ -135,8 +136,8 @@ class PlannerTests {
         engine.executeSQL(session, sql1)
     }
 
-    private fun insertSampleRecords() {
-        val engine = LevelSqlEngine(store!!)
+    private fun insertSampleRecords(store: IStore) {
+        val engine = LevelSqlEngine(store)
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
@@ -152,8 +153,8 @@ class PlannerTests {
     }
 
     @Test fun testInsertSqlLogicalPlanner() {
-        createSampleDb()
-        val engine = LevelSqlEngine(store!!)
+        val store = createSampleDb("testInsertSqlLogicalPlanner")
+        val engine = LevelSqlEngine(store)
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
@@ -169,9 +170,9 @@ class PlannerTests {
     }
 
     @Test fun testProductSqlLogicalPlanner() {
-        createSampleDb()
-        insertSampleRecords()
-        val engine = LevelSqlEngine(store!!)
+        val store = createSampleDb("testProductSqlLogicalPlanner")
+        insertSampleRecords(store)
+        val engine = LevelSqlEngine(store)
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
@@ -181,9 +182,9 @@ class PlannerTests {
     }
 
     @Test fun testLimitSqlLogicalPlanner() {
-        createSampleDb()
-        insertSampleRecords()
-        val engine = LevelSqlEngine(store!!)
+        val store = createSampleDb("testLimitSqlLogicalPlanner")
+        insertSampleRecords(store)
+        val engine = LevelSqlEngine(store)
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")
@@ -193,9 +194,9 @@ class PlannerTests {
     }
 
     @Test fun testAggregateSqlLogicalPlanner() {
-        createSampleDb()
-        insertSampleRecords()
-        val engine = LevelSqlEngine(store!!)
+        val store = createSampleDb("testAggregateSqlLogicalPlanner")
+        insertSampleRecords(store)
+        val engine = LevelSqlEngine(store)
         engine.loadMeta()
         val session = engine.createSession()
         session.useDb("test")

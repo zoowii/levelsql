@@ -561,7 +561,7 @@ class SqlParser(private val source: String, private val reader: InputStream) {
             checkNext('(')
             val values = mutableListOf<Token>()
             while (currentToken().t != ')'.toInt()) {
-                val value = checkToken()
+                val value = checkToken() // TODO: checkExpr()
                 values += value
                 if (!testNext(',')) {
                     break

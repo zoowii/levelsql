@@ -11,6 +11,9 @@ class ProtocolTests {
     private val host = "127.0.0.1"
     private val port = 3000
     @Test fun testStartMysqlServer() {
+        if(true) {
+            return // only start server manually
+        }
         val server = MysqlServer()
         server.initServer("./planner_tests_local")
         log.debug("starting mysql protocol at localhost:$port")
@@ -18,6 +21,9 @@ class ProtocolTests {
     }
 
     @Test fun testConnectToMysql() {
+        if(true) {
+            return // only start client manually
+        }
         Class.forName("com.mysql.cj.jdbc.Driver")
         val conn = DriverManager.getConnection("jdbc:mysql://localhost:$port/test?useSSL=false&serverTimezone=UTC",
                 "root","123456")

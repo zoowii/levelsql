@@ -18,41 +18,50 @@ import java.io.File
 import kotlin.test.assertTrue
 
 class TableTests {
-    private var db: Database? = null
+    // private var db: Database? = null
 
-    @Before
-    fun iniDb() {
+    // @Before
+    fun initDb() {
 //        val dbFile = File("./table_tests")
 //        if (dbFile.exists())
 //            dbFile.deleteRecursively()
 //        val store = LevelDbStore.openStore(dbFile)
 
-        // LocalFileStore需要更充分的测试
         val localDbFile = File("./table_tests_local")
         // 为了测试readDb，不删除旧数据文件
 //        if (localDbFile.exists())
 //            localDbFile.deleteRecursively()
         val localStore = LocalFileStore.openStore(localDbFile)
 
-        db = Database("test", localStore)
+        val db = Database("test", localStore)
     }
 
-    @After
-    fun closeDb() {
+    private fun cleanAndInitDb(testCaseName: String, clean: Boolean = true): Database {
+        val localDbFile = File("./table_tests_local/" + testCaseName)
+        if (clean && localDbFile.exists())
+            localDbFile.deleteRecursively()
+        val localStore = LocalFileStore.openStore(localDbFile)
+
+        val db = Database("test", localStore)
+        return db
+    }
+
+    // @After
+    fun closeDb(db: Database) {
         if(db!=null) {
-            db!!.store.close()
+            db.store.close()
         }
     }
 
     private val userTableName = "user"
 
-    private fun openSimpleTables(): Table {
+    private fun openSimpleTables(db: Database): Table {
         val columns = listOf(
                 TableColumnDefinition("id", IntColumnType(), true),
                 TableColumnDefinition("name", VarCharColumnType(50), true),
                 TableColumnDefinition("age", IntColumnType(), true)
         )
-        return Table(db!!, userTableName, "id", columns, 1024 * 16, 4)
+        return Table(db, userTableName, "id", columns, 1024 * 16, 4)
     }
 
     private fun writeTreeJsonToFile(treeJsonStr: String, outputPath: String) {
@@ -66,22 +75,47 @@ class TableTests {
 
     @Test
     fun testReadDb() {
-        val table = openSimpleTables()
-        val treeJson = table.toFullTreeString()
-        println("tree:")
-        println(treeJson)
-        writeTreeJsonToFile(treeJson, "test_table_docs/testReadDb.json")
-        val rowsCount = 10
-        // test inserted rows
-        for (i in 1..rowsCount) {
-            val k = i.toBytes()
-            val records = table.rawFind(EqualKeyCondition(k))
-            assert(records.size == 2)
-            for (r in records) {
-                assert(compareNodeKey(r.key, k) == 0)
+        var db = cleanAndInitDb("testReadDb", true)
+
+        try {
+            run {
+                val table = openSimpleTables(db)
+                val rowsCount = 10
+                // 插入2遍
+                for (i in 1..rowsCount) {
+                    val k = intDatum(i)
+                    val record = singleStringRow("hello_$i")
+                    table.rawInsert(k, record)
+                }
+                for (i in 1..rowsCount) {
+                    val k = intDatum(i)
+                    val record = singleStringRow("hello_$i")
+                    table.rawInsert(k, record)
+                }
+                closeDb(db)
             }
+
+            db = cleanAndInitDb("testReadDb", false) // close store and reopen db
+
+            val table = openSimpleTables(db)
+            val treeJson = table.toFullTreeString()
+            println("tree:")
+            println(treeJson)
+            writeTreeJsonToFile(treeJson, "test_table_docs/testReadDb.json")
+            val rowsCount = 10
+            // test inserted rows
+            for (i in 1..rowsCount) {
+                val k = intDatum(i).toBytes()
+                val records = table.rawFind(EqualKeyCondition(k))
+                assert(records.size == 2)
+                for (r in records) {
+                    assert(compareNodeKey(r.key, k) == 0)
+                }
+            }
+            assertTrue(table.validate(), "invalid tree")
+        } finally {
+            closeDb(db)
         }
-        assertTrue(table.validate(), "invalid tree")
     }
 
     private fun singleStringRow(str: String): Row {
@@ -108,108 +142,129 @@ class TableTests {
 
     @Test
     fun testInsertRows() {
-        val table = openSimpleTables()
-        val rowsCount = 10
-        // 插入2遍
-        for (i in 1..rowsCount) {
-            val k = intDatum(i)
-            val record = singleStringRow("hello_$i")
-            table.rawInsert(k, record)
-        }
-        for (i in 1..rowsCount) {
-            val k = intDatum(i)
-            val record = singleStringRow("hello_$i")
-            table.rawInsert(k, record)
-        }
-        val treeJson = table.toFullTreeString()
-        println("tree:")
-        println(treeJson)
-        writeTreeJsonToFile(treeJson, "test_table_docs/testInsertRows.json")
-        // test inserted rows
-        for (i in 1..rowsCount) {
-            val k = i.toBytes()
-            val records = table.rawFind(EqualKeyCondition(k))
-            assert(records.size == 2)
-            for (r in records) {
-                assert(compareNodeKey(r.key, k) == 0)
+        val db = cleanAndInitDb("testInsertRows", true)
+        try {
+            val table = openSimpleTables(db)
+            val rowsCount = 10
+            // 插入2遍
+            for (i in 1..rowsCount) {
+                val k = intDatum(i)
+                val record = singleStringRow("hello_$i")
+                table.rawInsert(k, record)
             }
+            for (i in 1..rowsCount) {
+                val k = intDatum(i)
+                val record = singleStringRow("hello_$i")
+                table.rawInsert(k, record)
+            }
+            val treeJson = table.toFullTreeString()
+            println("tree:")
+            println(treeJson)
+            writeTreeJsonToFile(treeJson, "test_table_docs/testInsertRows.json")
+            // test inserted rows
+            for (i in 1..rowsCount) {
+                val k = intDatum(i).toBytes()
+                val records = table.rawFind(EqualKeyCondition(k))
+                println("key " + i + " records count " + records.size)
+                assert(records.size == 2)
+                for (r in records) {
+                    assert(compareNodeKey(r.key, k) == 0)
+                }
+            }
+            assertTrue(table.validate(), "invalid tree")
+        } finally {
+            closeDb(db)
         }
-        assertTrue(table.validate(), "invalid tree")
     }
 
     @Test
     fun testUpdateRow() {
-        val table = openSimpleTables()
-        val rowsCount = 10
-        for (i in 1..rowsCount) {
-            val k = intDatum(i)
-            val record = singleStringRow("hello_$i")
-            table.rawInsert(k, record)
+        val db = cleanAndInitDb("testUpdateRow", true)
+        try {
+            val table = openSimpleTables(db)
+            val rowsCount = 10
+            for (i in 1..rowsCount) {
+                val k = intDatum(i)
+                val record = singleStringRow("hello_$i")
+                table.rawInsert(k, record)
+            }
+            val toUpdateKey = 3
+            val cond = EqualKeyCondition(intDatum(toUpdateKey).toBytes())
+            val foundRows = table.rawFind(cond)
+            assert(foundRows.isNotEmpty())
+            val row = foundRows[0]
+            val newRecord = singleStringRow("world_$toUpdateKey")
+            table.rawUpdate(row.rowId, bytesToIntDatum(row.key), newRecord)
+            val rowsAfterUpdate = table.rawFind(cond)
+            assert(rowsAfterUpdate.isNotEmpty())
+            val rowUpdated = rowsAfterUpdate[0]
+            assertTrue(rowUpdated.rowId == row.rowId
+                    && compareNodeKey(rowUpdated.key, row.key) == 0
+                    && compareBytes(rowUpdated.value, newRecord.toBytes()) == 0)
+            assertTrue(table.validate(), "invalid tree")
+        } finally {
+            closeDb(db)
         }
-        val toUpdateKey = 3
-        val cond = EqualKeyCondition(toUpdateKey.toBytes())
-        val foundRows = table.rawFind(cond)
-        assert(foundRows.isNotEmpty())
-        val row = foundRows[0]
-        val newRecord = singleStringRow("world_$toUpdateKey")
-        table.rawUpdate(row.rowId, bytesToIntDatum(row.key), newRecord)
-        val rowsAfterUpdate = table.rawFind(cond)
-        assert(rowsAfterUpdate.isNotEmpty())
-        val rowUpdated = rowsAfterUpdate[0]
-        assertTrue(rowUpdated.rowId == row.rowId
-                && compareNodeKey(rowUpdated.key, row.key) == 0
-                && compareBytes(rowUpdated.value, newRecord.toBytes()) == 0)
-        assertTrue(table.validate(), "invalid tree")
     }
 
     @Test
     fun testDeleteRow() {
-        val table = openSimpleTables()
-        val rowsCount = 10
-        for (i in 1..rowsCount) {
-            val k = intDatum(i)
-            val record = singleStringRow("hello_$i")
-            table.rawInsert(k, record)
-        }
-        val toDeleteKey = 3
-        val cond = EqualKeyCondition(toDeleteKey.toBytes())
-        val foundRows = table.rawFind(cond)
-        assert(foundRows.isNotEmpty())
-        val row = foundRows[0]
-        table.rawDelete(bytesToIntDatum(row.key), row.rowId)
+        val db = cleanAndInitDb("testDeleteRow", true)
+        try {
+            val table = openSimpleTables(db)
+            val rowsCount = 10
+            for (i in 1..rowsCount) {
+                val k = intDatum(i)
+                val record = singleStringRow("hello_$i")
+                table.rawInsert(k, record)
+            }
+            val toDeleteKey = 3
+            val cond = EqualKeyCondition(intDatum(toDeleteKey).toBytes())
+            val foundRows = table.rawFind(cond)
+            assert(foundRows.isNotEmpty())
+            val row = foundRows[0]
+            table.rawDelete(bytesToIntDatum(row.key), row.rowId)
 
-        val rowsAfterUpdate = table.rawFind(cond)
-        assert(rowsAfterUpdate.isEmpty())
-        assertTrue(table.validate(), "invalid tree")
+            val rowsAfterUpdate = table.rawFind(cond)
+            assert(rowsAfterUpdate.isEmpty())
+            assertTrue(table.validate(), "invalid tree")
+        } finally {
+            closeDb(db)
+        }
     }
 
     @Test
     fun testSelectRow() {
-        val table = openSimpleTables()
-        val rowsCount = 10
-        // 插入2遍
-        for (i in 1..rowsCount) {
-            val k = intDatum(i)
-            val record = singleStringRow("hello_$i")
-            table.rawInsert(k, record)
-        }
-        for (i in 1..rowsCount) {
-            val k = intDatum(i)
-            val record = singleStringRow("hello_$i")
-            table.rawInsert(k, record)
-        }
-        // test select by condition
-        for (i in 1..rowsCount) {
-            val k = i.toBytes()
-            val records = table.rawFind(GreatThanKeyCondition(k))
-            println("records count ${records.size}")
-            assert(records.size == (2 * (rowsCount - i)))
-            if (records.isNotEmpty()) {
-                val r = records[0]
-                assert(compareNodeKey(r.key, (i + 1).toBytes()) == 0)
+        val db = cleanAndInitDb("testSelectRow", true)
+        try {
+            val table = openSimpleTables(db)
+            val rowsCount = 10
+            // 插入2遍
+            for (i in 1..rowsCount) {
+                val k = intDatum(i)
+                val record = singleStringRow("hello_$i")
+                table.rawInsert(k, record)
             }
+            for (i in 1..rowsCount) {
+                val k = intDatum(i)
+                val record = singleStringRow("hello_$i")
+                table.rawInsert(k, record)
+            }
+            // test select by condition
+            for (i in 1..rowsCount) {
+                val k = intDatum(i).toBytes()
+                val records = table.rawFind(GreatThanKeyCondition(k))
+                println("records count ${records.size}")
+                assert(records.size == (2 * (rowsCount - i)))
+                if (records.isNotEmpty()) {
+                    val r = records[0]
+                    assert(compareNodeKey(r.key, intDatum(i + 1).toBytes()) == 0)
+                }
+            }
+            assertTrue(table.validate(), "invalid tree")
+        } finally {
+            closeDb(db)
         }
-        assertTrue(table.validate(), "invalid tree")
     }
 
     @Test

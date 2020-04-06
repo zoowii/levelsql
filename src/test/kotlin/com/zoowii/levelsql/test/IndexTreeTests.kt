@@ -17,21 +17,23 @@ import kotlin.test.assertTrue
 
 class IndexTreeTestCase {
 
-    private var _tree: IndexTree? = null
-    private val lastRowIdGen: AtomicLong = AtomicLong(0)
+    class TestSession(val sessionName: String) {
+        var tree: IndexTree? = null
 
-    private fun nextRowId(): RowId {
-        return RowId.fromLong(lastRowIdGen.getAndIncrement())
+        private val lastRowIdGen: AtomicLong = AtomicLong(0)
+        fun nextRowId(): RowId {
+            return RowId.fromLong(lastRowIdGen.getAndIncrement())
+        }
     }
 
-    @Before fun initEmptyTree() {
-        val dbFile = File("./test_db")
+    private fun cleanAndInitEmptyTree(sess: TestSession) {
+        val dbFile = File("./test_db/" + sess.sessionName)
         if(dbFile.exists())
             dbFile.deleteRecursively()
         val store = LevelDbStore.openStore(dbFile)
 
-        _tree = IndexTree(store, "test_index_name", 1024 * 16, 4, true)
-        _tree?.initTree()
+        sess.tree = IndexTree(store, "test_index_name", 1024 * 16, 4, true)
+        sess.tree?.initTree()
     }
 
     private fun writeTreeJsonToFile(treeJsonStr: String, outputPath: String) {
@@ -44,27 +46,29 @@ class IndexTreeTestCase {
     }
 
     private val simpleTreeKeysCount = 16 // 8, 16
-    private fun createSimpleTree() {
-        val tree = _tree ?: return
+    private fun createSimpleTree(sess: TestSession) {
+        val tree = sess.tree ?: return
         val keysCount = simpleTreeKeysCount
         for(i in 1 until keysCount) {
-            tree.addKeyValue(IndexLeafNodeValue(nextRowId(), i.toBytes(), i.toBytes()))
+            tree.addKeyValue(IndexLeafNodeValue(sess.nextRowId(), i.toBytes(), i.toBytes()))
         }
     }
 
-    private fun createReverseSimpleTree() {
-        val tree = _tree ?: return
+    private fun createReverseSimpleTree(sess: TestSession) {
+        val tree = sess.tree ?: return
         val keysCount = simpleTreeKeysCount
         for(i in (keysCount-1) downTo 0) {
             val insertValue = i
-            tree.addKeyValue(IndexLeafNodeValue(nextRowId(), insertValue.toBytes(), insertValue.toBytes()))
+            tree.addKeyValue(IndexLeafNodeValue(sess.nextRowId(), insertValue.toBytes(), insertValue.toBytes()))
         }
 //        tree.addKeyValue(IndexLeafNodeValue(5.toBytes()))
     }
 
     @Test fun testInsertReverse() {
-        val tree = _tree ?: return
-        createReverseSimpleTree()
+        val sess = TestSession("testInsertReverse")
+        cleanAndInitEmptyTree(sess)
+        val tree = sess.tree ?: return
+        createReverseSimpleTree(sess)
         val keysCount = simpleTreeKeysCount
         val treeJson = tree.toFullTreeString()
         println("Reverse tree:")
@@ -84,8 +88,10 @@ class IndexTreeTestCase {
     }
 
     @Test fun testInsert() {
-        val tree = _tree ?: return
-        createSimpleTree()
+        val sess = TestSession("testInsert")
+        cleanAndInitEmptyTree(sess)
+        val tree = sess.tree ?: return
+        createSimpleTree(sess)
         val keysCount = simpleTreeKeysCount
         val treeJson = tree.toFullTreeString()
         println("tree:")
@@ -104,12 +110,14 @@ class IndexTreeTestCase {
     }
 
     @Test fun testInsertDuplicate() {
-        val tree = _tree ?: return
-        createSimpleTree()
+        val sess = TestSession("testInsertDuplicate")
+        cleanAndInitEmptyTree(sess)
+        val tree = sess.tree ?: return
+        createSimpleTree(sess)
         val keysCount = simpleTreeKeysCount
         // 插入一遍重复key，但是value不一样
         for(i in 1 until keysCount) {
-            tree.addKeyValue(IndexLeafNodeValue(nextRowId(), i.toBytes(), (i+100).toBytes()))
+            tree.addKeyValue(IndexLeafNodeValue(sess.nextRowId(), i.toBytes(), (i+100).toBytes()))
         }
 
         val treeJson = tree.toFullTreeString()
@@ -129,8 +137,10 @@ class IndexTreeTestCase {
     }
 
     @Test fun testDelete() {
-        createSimpleTree()
-        val tree = _tree ?: return
+        val sess = TestSession("testDelete")
+        cleanAndInitEmptyTree(sess)
+        createSimpleTree(sess)
+        val tree = sess.tree ?: return
 
         val item1 = 9
         val item1Key = item1.toBytes()
@@ -151,12 +161,14 @@ class IndexTreeTestCase {
 
     @Test fun testSeekByEqualCondition() {
         // 测试按=条件seek查找
-        createSimpleTree()
-        val tree = _tree ?: return
+        val sess = TestSession("testSeekByEqualCondition")
+        cleanAndInitEmptyTree(sess)
+        createSimpleTree(sess)
+        val tree = sess.tree ?: return
         val keysCount = simpleTreeKeysCount
         // 插入一遍重复key，但是value不一样
         for(i in 1 until keysCount) {
-            tree.addKeyValue(IndexLeafNodeValue(nextRowId(), i.toBytes(), (i+100).toBytes()))
+            tree.addKeyValue(IndexLeafNodeValue(sess.nextRowId(), i.toBytes(), (i+100).toBytes()))
         }
 
         val treeJson = tree.toFullTreeString()
@@ -180,12 +192,14 @@ class IndexTreeTestCase {
 
     @Test fun testSeekByLessCondition() {
         // 测试按 < 条件seek查找
-        createSimpleTree()
-        val tree = _tree ?: return
+        val sess = TestSession("testSeekByLessCondition")
+        cleanAndInitEmptyTree(sess)
+        createSimpleTree(sess)
+        val tree = sess.tree ?: return
         val keysCount = simpleTreeKeysCount
         // 插入一遍重复key，但是value不一样
         for(i in 1 until keysCount) {
-            tree.addKeyValue(IndexLeafNodeValue(nextRowId(), i.toBytes(), (i+100).toBytes()))
+            tree.addKeyValue(IndexLeafNodeValue(sess.nextRowId(), i.toBytes(), (i+100).toBytes()))
         }
 
         val treeJson = tree.toFullTreeString()
@@ -212,12 +226,14 @@ class IndexTreeTestCase {
 
     @Test fun testSeekByGreatCondition() {
         // 测试按 > 条件seek查找
-        createSimpleTree()
-        val tree = _tree ?: return
+        val sess = TestSession("testSeekByGreatCondition")
+        cleanAndInitEmptyTree(sess)
+        createSimpleTree(sess)
+        val tree = sess.tree ?: return
         val keysCount = simpleTreeKeysCount
         // 插入一遍重复key，但是value不一样
         for(i in 1 until keysCount) {
-            tree.addKeyValue(IndexLeafNodeValue(nextRowId(), i.toBytes(), (i+100).toBytes()))
+            tree.addKeyValue(IndexLeafNodeValue(sess.nextRowId(), i.toBytes(), (i+100).toBytes()))
         }
 
         val treeJson = tree.toFullTreeString()

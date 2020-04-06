@@ -77,7 +77,12 @@ class ParserTests {
                 "('wang6', 'America', 81)"
         val input1 = ByteArrayInputStream(sql1.toByteArray())
         val parser1 = SqlParser("test", input1)
-        parser1.parse()
+        try{
+            parser1.parse()
+        } catch(e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
         val stmts1 = parser1.getStatements()
         println("stmts1:" + stmts1.joinToString("\n"))
     }
