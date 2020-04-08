@@ -309,17 +309,24 @@ class SqlParser(private val source: String, private val reader: InputStream) {
                         // opsStacks中的操作符或者(是空的，说明是直接遇到')'或者symbol或者字面量后遇到')'，说明之前的表达式结束了
                         break@loop
                     }
-                    next()
+
                     // 要求栈中上一个是一个值(非null)并且上上一个值是'(' (用null表示)
                     if (opsStack.size < 1) {
                         throw SqlParseException("invalid expr $token")
                     }
+                    var foundLeftMatch = false // 是否找到左侧匹配的左括号
                     while (opsStack.isNotEmpty()) {
                         val item = popFromList(opsStack)
                         if (item == null) { // 遇到左括号了
+                            foundLeftMatch = true
                             break
                         }
                         suffixStack.add(item)
+                    }
+                    if(foundLeftMatch) {
+                        next()
+                    } else {
+                        break@loop // 没有匹配的左括号，这个')'不是表达式的一部分
                     }
                 }
                 else -> {
@@ -357,8 +364,10 @@ class SqlParser(private val source: String, private val reader: InputStream) {
             }
         }
 
-        if (exprsStack.size != 1)
+        if (exprsStack.size != 1) {
+            log.info("exprsStack[0]={}, exprsStack[1]={}", exprsStack[0], exprsStack[1])
             throw SqlParseException("invalid expr ${currentToken()}")
+        }
         return exprsStack[0]
     }
 
@@ -556,12 +565,12 @@ class SqlParser(private val source: String, private val reader: InputStream) {
         }
         checkNext(')')
         checkNext(tkValues)
-        val rows = mutableListOf<List<Token>>()
+        val rows = mutableListOf<List<Expr>>()
         while (currentToken().t == '('.toInt()) {
             checkNext('(')
-            val values = mutableListOf<Token>()
+            val values = mutableListOf<Expr>()
             while (currentToken().t != ')'.toInt()) {
-                val value = checkToken() // TODO: checkExpr()
+                val value = checkExpr()
                 values += value
                 if (!testNext(',')) {
                     break

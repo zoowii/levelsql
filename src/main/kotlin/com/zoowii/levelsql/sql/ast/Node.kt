@@ -64,7 +64,7 @@ class UseStatement(val line: Int, val dbName: String) : Node {
     }
 }
 
-class InsertStatement(val line: Int, val tblName: String, val columns: List<String>, val rows: List<List<Token>>) : Node {
+class InsertStatement(val line: Int, val tblName: String, val columns: List<String>, val rows: List<List<Expr>>) : Node {
     override fun toString(): String {
         return "insert into table $tblName (${columns.joinToString(", ")}) " +
                 "values ${rows.map { "(" + it.map { it.toString() }.joinToString(", ") + ")" }}"

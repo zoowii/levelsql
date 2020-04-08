@@ -6,12 +6,13 @@ import com.zoowii.levelsql.engine.planner.LogicalPlanner
 import com.zoowii.levelsql.engine.types.Chunk
 import com.zoowii.levelsql.engine.types.Row
 import com.zoowii.levelsql.sql.scanner.Token
+import com.zoowii.levelsql.sql.ast.Expr
 import java.sql.SQLException
 import java.util.concurrent.Future
 
 // insert记录的planner
 class InsertPlanner(private val sess: DbSession, val tblName: String, val columns: List<String>,
-                    val rows: List<List<Token>>) : LogicalPlanner(sess) {
+                    val rows: List<List<Expr>>) : LogicalPlanner(sess) {
     private var executed = false
 
     override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
@@ -28,10 +29,14 @@ class InsertPlanner(private val sess: DbSession, val tblName: String, val column
         val datumRows = rows.map {
             val row = it
             row.map {
-                when {
-                    it.isLiteralValue() -> it.getLiteralDatumValue()
-                    else -> throw SQLException("unknown datum from token type ${it.t}")
-                }
+                // eval expr
+                val chunk = Chunk.singleLongValue(0L)
+                val exprValueChunk = it.eval(chunk, listOf<String>())
+                exprValueChunk[0]
+                // when {
+                //     it.isLiteralValue() -> it.getLiteralDatumValue()
+                //     else -> throw SQLException("unknown datum from token type ${it.t}")
+                // }
             }
         }
         // TODO: 把rows根据columns顺序和table的结构重排序，填充入没提高的自动填充的值和默认值，构成List<Row>
