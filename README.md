@@ -125,7 +125,7 @@ sum(age)	count(age)	max(age)	min(age)
 * insert
 ``` 
 insert into employee (id, name, age) values 
-    (1, 'zhang1', 21), (2, 'zhang2', 22), (3, 'zhang3', 23)
+    (1, 'zhang1', 21), (2, 'zhang2', 22+2), (3, 'zhang3', 23)
 ```
 
 * update
