@@ -639,7 +639,7 @@ class SqlParser(private val source: String, private val reader: InputStream) {
             tkAlter -> {
                 alterStatement(line)
             }
-            tkDescribe -> {
+            tkDescribe, tkDesc -> {
                 describeStatement(line)
             }
             tkSet -> {

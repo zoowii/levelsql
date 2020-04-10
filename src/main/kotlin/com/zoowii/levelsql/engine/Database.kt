@@ -70,6 +70,10 @@ class Database(val dbName: String, val store: IStore) {
         return tables.firstOrNull { it.tblName == tableName } ?: throw DbException("table ${tableName} not found")
     }
 
+    fun findTable(tblName: String): Table? {
+        return tables.firstOrNull { it.tblName == tblName }
+    }
+
     fun listTables(): List<String> = tables.map { it.tblName }
 
     override fun toString(): String {

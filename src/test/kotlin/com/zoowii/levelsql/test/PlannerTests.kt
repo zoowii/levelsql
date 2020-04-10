@@ -89,6 +89,17 @@ class PlannerTests {
         engine.executeSQL(session, sql1)
     }
 
+    @Test fun testDescribeTableLogicalPlanner() {
+        val store = createSampleDb("testDescribeTableLogicalPlanner")
+        insertSampleRecords(store)
+        val engine = LevelSqlEngine(store)
+        engine.loadMeta()
+        val session = engine.createSession()
+        session.useDb("test")
+        val sql1 = "describe employee"
+        engine.executeSQL(session, sql1)
+    }
+
     @Test fun testSimpleSelectLogicalPlanner() {
         val store = createSampleDb("testSimpleSelectLogicalPlanner")
         insertSampleRecords(store)

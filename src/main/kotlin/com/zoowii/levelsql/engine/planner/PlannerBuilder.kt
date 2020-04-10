@@ -165,6 +165,10 @@ object PlannerBuilder {
                     else -> throw SqlParseException("invalid show statement $stmt")
                 }
             }
+            DescribeTableStatement::class.java -> {
+                stmt as DescribeTableStatement
+                return DescribeTablePlanner(session, stmt.tblName)
+            }
             // TODO: 其他SQL AST节点类型
             else -> {
                 throw SQLException("not supported sql node type ${stmt.javaClass} to planner")

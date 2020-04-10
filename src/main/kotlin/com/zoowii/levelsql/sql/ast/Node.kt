@@ -48,7 +48,7 @@ class CreateIndexStatement(val line: Int, val indexName: String, val tblName: St
 
 class DescribeTableStatement(val line: Int, val tblName: String) : Node {
     override fun toString(): String {
-        return "describle table $tblName"
+        return "describle $tblName"
     }
 }
 
