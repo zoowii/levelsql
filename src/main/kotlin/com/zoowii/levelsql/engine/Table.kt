@@ -104,7 +104,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         return maxMatchIndex
     }
 
-    fun openIndex(indexName: String): Index? {
+    fun openIndex(session: DbSession?, indexName: String): Index? {
         if (primaryIndex.indexName == indexName) {
             return primaryIndex
         }
@@ -115,8 +115,8 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         return primaryIndex
     }
 
-    fun createIndex(indexName: String, columns: List<String>, unique: Boolean): Index {
-        val existed = openIndex(indexName)
+    fun createIndex(session: DbSession?, indexName: String, columns: List<String>, unique: Boolean): Index {
+        val existed = openIndex(session, indexName)
         if (existed != null) {
             throw DbException("index name $tblName.$indexName conflict")
         }
@@ -154,7 +154,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         return result
     }
 
-    fun rawInsert(key: Datum, record: Row) {
+    fun rawInsert(session: DbSession?, key: Datum, record: Row) {
         val nextRowId = nextRowId()
         primaryIndex.tree.addKeyValue(IndexLeafNodeValue(nextRowId, datumsToIndexKey(key), record.toBytes()))
         // 二级索引也需要插入记录
@@ -167,9 +167,14 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
             val value = itemRow.toBytes()
             index.tree.addKeyValue(IndexLeafNodeValue(nextRowId, indexKey, value))
         }
+        session?.getTransaction()?.addInsertRecord(db.dbName, nextRowId)
     }
 
-    fun rawUpdate(rowId: RowId, key: Datum, record: Row) {
+    fun rawUpdate(session: DbSession?, rowId: RowId, key: Datum, record: Row) {
+        val tx = session?.getTransaction()
+        val oldValueLeafRecord = if(tx!=null) primaryIndex.tree.findLeafNodeByKeyAndRowId(datumsToIndexKey(key), rowId)?.leafRecord() else null
+        val oldRow = if(oldValueLeafRecord!=null) Row().fromBytes(ByteArrayStream(oldValueLeafRecord.value)) else null
+
         try {
             primaryIndex.tree.replaceKeyValue(IndexLeafNodeValue(rowId, datumsToIndexKey(key), record.toBytes()))
         } catch (e: IndexException) {
@@ -185,14 +190,18 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
             val value = itemRow.toBytes()
             index.tree.replaceKeyValue(IndexLeafNodeValue(rowId, indexKey, value))
         }
+        if(tx!=null) {
+            tx.addUpdateRecord(db.dbName, rowId, oldRow!!)
+        }
     }
 
-    fun rawDelete(key: Datum, rowId: RowId) {
+    fun rawDelete(session: DbSession?, key: Datum, rowId: RowId) {
         val indexPrimaryKey = datumsToIndexKey(key)
         val nodeAndPos = primaryIndex.tree.findLeafNodeByKeyAndRowId(indexPrimaryKey, rowId)
         if (nodeAndPos == null) {
             throw DbException("record not found for delete")
         }
+        // TODO: 改成标记row为deleted而不是物理删除
         val record = Row().fromBytes(ByteArrayStream(nodeAndPos.leafRecord().value))
         primaryIndex.tree.deleteByKeyAndRowId(indexPrimaryKey, rowId)
         // 二级索引也需要修改记录
@@ -205,9 +214,10 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
             val value = itemRow.toBytes()
             index.tree.deleteByKeyAndRowId(indexKey, rowId)
         }
+        session?.getTransaction()?.addDeleteRecord(db.dbName, rowId, record)
     }
 
-    fun rawGet(key: Datum): IndexLeafNodeValue? {
+    fun rawGet(session: DbSession?, key: Datum): IndexLeafNodeValue? {
         val indexPrimaryKey = datumsToIndexKey(key)
         val (nodeAndPos, isNewNode) = primaryIndex.tree.findIndex(indexPrimaryKey, false)
         if (nodeAndPos == null || isNewNode) {
@@ -218,11 +228,11 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
     }
 
     // 找到表中第一条数据
-    fun rawSeekFirst(): IndexNodeValue? {
+    fun rawSeekFirst(session: DbSession?): IndexNodeValue? {
         return primaryIndex.tree.seekFirst()
     }
 
-    fun rawNextRecord(pos: IndexNodeValue?): IndexNodeValue? {
+    fun rawNextRecord(session: DbSession?, pos: IndexNodeValue?): IndexNodeValue? {
         if (pos == null) {
             return null
         }
@@ -230,7 +240,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
     }
 
     // raw find range by condition
-    fun rawFind(condition: KeyCondition): List<IndexLeafNodeValue> {
+    fun rawFind(session: DbSession?, condition: KeyCondition): List<IndexLeafNodeValue> {
         val first = primaryIndex.tree.seekByCondition(condition) ?: return listOf()
         val mutableResult = mutableListOf<IndexLeafNodeValue>()
         var cur: IndexNodeValue? = first

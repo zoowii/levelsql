@@ -8,6 +8,7 @@ import com.zoowii.levelsql.sql.scanner.TokenTypes.tkAdd
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkAlter
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkBy
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkColumn
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkCommit
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkCreate
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkDatabase
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkDelete
@@ -30,10 +31,13 @@ import com.zoowii.levelsql.sql.scanner.TokenTypes.tkName
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkOn
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkOrder
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkRight
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkRollback
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkSelect
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkSet
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkShow
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkStart
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkTable
+import com.zoowii.levelsql.sql.scanner.TokenTypes.tkTransaction
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkUpdate
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkUse
 import com.zoowii.levelsql.sql.scanner.TokenTypes.tkValues
@@ -149,6 +153,20 @@ class SqlParser(private val source: String, private val reader: InputStream) {
         next()
         val dbName = checkToken().s
         addSqlStatement(UseStatement(line, dbName))
+    }
+
+    private fun startTransactionStatement(line: Int) {
+        next()
+        checkNext(tkTransaction)
+        addSqlStatement(StartTransactionStatement(line))
+    }
+    private fun commitStatement(line: Int) {
+        next()
+        addSqlStatement(CommitStatement(line))
+    }
+    private fun rollbackStatement(line: Int) {
+        next()
+        addSqlStatement(RollbackStatement(line))
     }
 
     private fun createStatement(line: Int) {
@@ -647,6 +665,15 @@ class SqlParser(private val source: String, private val reader: InputStream) {
             }
             tkUse -> {
                 useStatement(line)
+            }
+            tkStart -> {
+                startTransactionStatement(line)
+            }
+            tkCommit -> {
+                commitStatement(line)
+            }
+            tkRollback -> {
+                rollbackStatement(line)
             }
             else -> {
                 throw SqlParseException("not support sql syntax ${scanner.currentToken()}")

@@ -82,7 +82,7 @@ class IndexSelectPlanner(private val sess: DbSession, val tblName: String, val i
             return
         }
         val table = sess.db!!.openTable(tblName)
-        val index = table.openIndex(indexName) ?: throw SQLException("can't find index $indexName")
+        val index = table.openIndex(sess, indexName) ?: throw SQLException("can't find index $indexName")
         // 从filterCondExpr中构造在index的tree种seek用的KeyCondition，然后在index中搜索
         var keyCondition: KeyCondition? = null
         // 为简化实现，目前只接受过滤条件是一项的 column op literalValue 的二元条件表达式 或者 a=xxx and b = xxx 这类 and 以及等于表达式且可以用二级索引的条件
@@ -192,7 +192,7 @@ class IndexSelectPlanner(private val sess: DbSession, val tblName: String, val i
             return
         }
         val table = sess.db!!.openTable(tblName)
-        val index = table.openIndex(indexName) ?: throw SQLException("can't find index $indexName")
+        val index = table.openIndex(sess, indexName) ?: throw SQLException("can't find index $indexName")
         if (index.primary) {
             setOutputNames(table.columns.map { it.name })
         } else {

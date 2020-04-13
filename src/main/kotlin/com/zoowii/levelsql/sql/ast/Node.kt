@@ -64,6 +64,24 @@ class UseStatement(val line: Int, val dbName: String) : Node {
     }
 }
 
+class StartTransactionStatement(val line: Int) : Node {
+    override fun toString(): String {
+        return "start transaction"
+    }
+}
+
+class CommitStatement(val line: Int) : Node {
+    override fun toString(): String {
+        return "commit"
+    }
+}
+
+class RollbackStatement(val line: Int) : Node {
+    override fun toString(): String {
+        return "rollback"
+    }
+}
+
 class InsertStatement(val line: Int, val tblName: String, val columns: List<String>, val rows: List<List<Expr>>) : Node {
     override fun toString(): String {
         return "insert into table $tblName (${columns.joinToString(", ")}) " +

@@ -54,7 +54,7 @@ class Database(val dbName: String, val store: IStore) {
         }
     }
 
-    fun createTable(tableName: String, columns: List<TableColumnDefinition>, primaryKey: String): Table {
+    fun createTable(session: DbSession?, tableName: String, columns: List<TableColumnDefinition>, primaryKey: String): Table {
         if (tables.any { it.tblName == tableName }) {
             throw DbException("table ${tableName} existed before")
         }

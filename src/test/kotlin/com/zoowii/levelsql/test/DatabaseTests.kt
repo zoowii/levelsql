@@ -1,12 +1,8 @@
 package com.zoowii.levelsql.test
 
-import com.zoowii.levelsql.engine.IntColumnType
-import com.zoowii.levelsql.engine.TableColumnDefinition
-import com.zoowii.levelsql.engine.VarCharColumnType
-import com.zoowii.levelsql.engine.LevelSqlEngine
+import com.zoowii.levelsql.engine.*
 import com.zoowii.levelsql.engine.store.IStore
 import com.zoowii.levelsql.engine.store.LocalFileStore
-import com.zoowii.levelsql.engine.Database
 import org.junit.Before
 import org.junit.Test
 import java.io.File
@@ -27,13 +23,14 @@ class DatabaseTests {
         engine.createDatabase("test2").saveMeta()
         val db = engine.createDatabase("test")
         engine.saveMeta()
+        val sess: DbSession? = null
         val employeeTableColumns = listOf(
                 TableColumnDefinition("id", IntColumnType(), true),
                 TableColumnDefinition("name", VarCharColumnType(50), true),
                 TableColumnDefinition("age", IntColumnType(), true)
         )
-        val table = db.createTable("employee", employeeTableColumns, "id")
-        table.createIndex("employee_name_idx", listOf("name"), false)
+        val table = db.createTable(sess, "employee", employeeTableColumns, "id")
+        table.createIndex(sess, "employee_name_idx", listOf("name"), false)
         db.saveMeta()
         return db
     }

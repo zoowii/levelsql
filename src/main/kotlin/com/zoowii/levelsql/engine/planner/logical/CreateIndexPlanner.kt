@@ -26,7 +26,7 @@ class CreateIndexPlanner(private val sess: DbSession, val indexName: String, val
             if (table.containsIndex(indexName)) {
                 throw DbException("index name $indexName conflict")
             }
-            table.createIndex(indexName, columns, unique)
+            table.createIndex(sess, indexName, columns, unique)
             db.saveMeta()
             fetchTask.submitChunk(Chunk.singleLongValue(1))
         } catch (e: Exception) {

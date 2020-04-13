@@ -11,9 +11,9 @@ class ProtocolTests {
     private val host = "127.0.0.1"
     private val port = 3000
     @Test fun testStartMysqlServer() {
-//        if(true) {
-//            return // only start server manually
-//        }
+        if(true) {
+            return // only start server manually
+        }
         val server = MysqlServer()
         server.initServer("./planner_tests_local")
         log.debug("starting mysql protocol at localhost:$port")

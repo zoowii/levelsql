@@ -1,10 +1,6 @@
 package com.zoowii.levelsql.test
 
-import com.zoowii.levelsql.engine.IntColumnType
-import com.zoowii.levelsql.engine.TableColumnDefinition
-import com.zoowii.levelsql.engine.VarCharColumnType
-import com.zoowii.levelsql.engine.Database
-import com.zoowii.levelsql.engine.LevelSqlEngine
+import com.zoowii.levelsql.engine.*
 import com.zoowii.levelsql.engine.store.IStore
 import com.zoowii.levelsql.engine.store.LocalFileStore
 import org.junit.Test
@@ -21,6 +17,7 @@ class PlannerTests {
         val store = LocalFileStore.openStore(localDbFile)
 
         val engine = LevelSqlEngine(store)
+        val sess: DbSession? = null
 
         run {
             if (!engine.containsDatabase("test1")) {
@@ -44,10 +41,10 @@ class PlannerTests {
                 TableColumnDefinition("age", IntColumnType(), true),
                 TableColumnDefinition("country_id", IntColumnType(), true)
         )
-        val employeeTable = db.createTable("employee", employeeTableColumns, "id")
-        employeeTable.createIndex("employee_name_idx", listOf("name"), false)
-        employeeTable.createIndex("employee_name_age_idx", listOf("name", "age"), false)
-        employeeTable.createIndex("employee_age_name_idx", listOf("age", "name"), false)
+        val employeeTable = db.createTable(sess, "employee", employeeTableColumns, "id")
+        employeeTable.createIndex(sess, "employee_name_idx", listOf("name"), false)
+        employeeTable.createIndex(sess, "employee_name_age_idx", listOf("name", "age"), false)
+        employeeTable.createIndex(sess, "employee_age_name_idx", listOf("age", "name"), false)
 
         db.saveMeta()
 

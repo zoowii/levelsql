@@ -14,6 +14,7 @@ val reservedTokens = arrayOf("describe", "show", "create", "drop", "database", "
         "select", "insert", "update", "delete", "alter", "and", "or", "where",
         "order", "by", "asc", "desc", "from", "join", "union", "left", "right", "inner", "outer", "full",
         "into", "default", "primary", "key", "auto_increment", "values", "set", "use",
+        "start", "commit", "rollback", "transaction",
         "explain", "on", "add", "column", "group", "limit", "true", "false",
         "not", "null",
         ">=", "<=", "!=", "<>",
@@ -59,6 +60,10 @@ object TokenTypes {
     val tkValues: Rune = reservedTokenTypeByName("values")
     val tkSet: Rune = reservedTokenTypeByName("set")
     val tkUse: Rune = reservedTokenTypeByName("use")
+    val tkStart: Rune = reservedTokenTypeByName("start")
+    val tkCommit: Rune = reservedTokenTypeByName("commit")
+    val tkRollback: Rune = reservedTokenTypeByName("rollback")
+    val tkTransaction: Rune = reservedTokenTypeByName("transaction")
     val tkExplain: Rune = reservedTokenTypeByName("explain")
     val tkOn: Rune = reservedTokenTypeByName("on")
     val tkAdd: Rune = reservedTokenTypeByName("add")

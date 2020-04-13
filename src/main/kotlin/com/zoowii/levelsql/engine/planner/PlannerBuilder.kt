@@ -169,7 +169,19 @@ object PlannerBuilder {
                 stmt as DescribeTableStatement
                 return DescribeTablePlanner(session, stmt.tblName)
             }
-            // TODO: 其他SQL AST节点类型
+            StartTransactionStatement::class.java -> {
+                stmt as StartTransactionStatement
+                return StartTransactionPlanner(session)
+            }
+            CommitStatement::class.java -> {
+                stmt as CommitStatement
+                return CommitPlanner(session)
+            }
+            RollbackStatement::class.java -> {
+                stmt as RollbackStatement
+                return RollbackPlanner(session)
+            }
+            // TODO: 其他SQL AST节点类型，比如 DeleteStatement
             else -> {
                 throw SQLException("not supported sql node type ${stmt.javaClass} to planner")
             }

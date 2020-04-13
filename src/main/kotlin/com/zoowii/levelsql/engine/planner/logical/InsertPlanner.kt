@@ -51,7 +51,7 @@ class InsertPlanner(private val sess: DbSession, val tblName: String, val column
             val primaryKeyValue = datumRow[primaryKeyIndex]
             val row = Row()
             row.data = datumRow
-            table.rawInsert(primaryKeyValue, row)
+            table.rawInsert(sess, primaryKeyValue, row)
         }
         fetchTask.submitChunk(Chunk.singleLongValue(datumRows.size.toLong())) // 输出添加的行数
     }

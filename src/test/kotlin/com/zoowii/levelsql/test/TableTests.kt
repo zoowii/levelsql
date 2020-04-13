@@ -1,10 +1,6 @@
 package com.zoowii.levelsql.test
 
-import com.zoowii.levelsql.engine.IntColumnType
-import com.zoowii.levelsql.engine.TableColumnDefinition
-import com.zoowii.levelsql.engine.VarCharColumnType
-import com.zoowii.levelsql.engine.Database
-import com.zoowii.levelsql.engine.Table
+import com.zoowii.levelsql.engine.*
 import com.zoowii.levelsql.engine.store.LocalFileStore
 import com.zoowii.levelsql.engine.store.toBytes
 import com.zoowii.levelsql.engine.types.Datum
@@ -85,12 +81,12 @@ class TableTests {
                 for (i in 1..rowsCount) {
                     val k = intDatum(i)
                     val record = singleStringRow("hello_$i")
-                    table.rawInsert(k, record)
+                    table.rawInsert(null, k, record)
                 }
                 for (i in 1..rowsCount) {
                     val k = intDatum(i)
                     val record = singleStringRow("hello_$i")
-                    table.rawInsert(k, record)
+                    table.rawInsert(null, k, record)
                 }
                 closeDb(db)
             }
@@ -106,7 +102,7 @@ class TableTests {
             // test inserted rows
             for (i in 1..rowsCount) {
                 val k = intDatum(i).toBytes()
-                val records = table.rawFind(EqualKeyCondition(k))
+                val records = table.rawFind(null, EqualKeyCondition(k))
                 assert(records.size == 2)
                 for (r in records) {
                     assert(compareNodeKey(r.key, k) == 0)
@@ -150,12 +146,12 @@ class TableTests {
             for (i in 1..rowsCount) {
                 val k = intDatum(i)
                 val record = singleStringRow("hello_$i")
-                table.rawInsert(k, record)
+                table.rawInsert(null, k, record)
             }
             for (i in 1..rowsCount) {
                 val k = intDatum(i)
                 val record = singleStringRow("hello_$i")
-                table.rawInsert(k, record)
+                table.rawInsert(null, k, record)
             }
             val treeJson = table.toFullTreeString()
             println("tree:")
@@ -164,7 +160,7 @@ class TableTests {
             // test inserted rows
             for (i in 1..rowsCount) {
                 val k = intDatum(i).toBytes()
-                val records = table.rawFind(EqualKeyCondition(k))
+                val records = table.rawFind(null, EqualKeyCondition(k))
                 println("key " + i + " records count " + records.size)
                 assert(records.size == 2)
                 for (r in records) {
@@ -186,16 +182,16 @@ class TableTests {
             for (i in 1..rowsCount) {
                 val k = intDatum(i)
                 val record = singleStringRow("hello_$i")
-                table.rawInsert(k, record)
+                table.rawInsert(null, k, record)
             }
             val toUpdateKey = 3
             val cond = EqualKeyCondition(intDatum(toUpdateKey).toBytes())
-            val foundRows = table.rawFind(cond)
+            val foundRows = table.rawFind(null, cond)
             assert(foundRows.isNotEmpty())
             val row = foundRows[0]
             val newRecord = singleStringRow("world_$toUpdateKey")
-            table.rawUpdate(row.rowId, bytesToIntDatum(row.key), newRecord)
-            val rowsAfterUpdate = table.rawFind(cond)
+            table.rawUpdate(null, row.rowId, bytesToIntDatum(row.key), newRecord)
+            val rowsAfterUpdate = table.rawFind(null, cond)
             assert(rowsAfterUpdate.isNotEmpty())
             val rowUpdated = rowsAfterUpdate[0]
             assertTrue(rowUpdated.rowId == row.rowId
@@ -216,16 +212,16 @@ class TableTests {
             for (i in 1..rowsCount) {
                 val k = intDatum(i)
                 val record = singleStringRow("hello_$i")
-                table.rawInsert(k, record)
+                table.rawInsert(null, k, record)
             }
             val toDeleteKey = 3
             val cond = EqualKeyCondition(intDatum(toDeleteKey).toBytes())
-            val foundRows = table.rawFind(cond)
+            val foundRows = table.rawFind(null, cond)
             assert(foundRows.isNotEmpty())
             val row = foundRows[0]
-            table.rawDelete(bytesToIntDatum(row.key), row.rowId)
+            table.rawDelete(null, bytesToIntDatum(row.key), row.rowId)
 
-            val rowsAfterUpdate = table.rawFind(cond)
+            val rowsAfterUpdate = table.rawFind(null, cond)
             assert(rowsAfterUpdate.isEmpty())
             assertTrue(table.validate(), "invalid tree")
         } finally {
@@ -243,17 +239,17 @@ class TableTests {
             for (i in 1..rowsCount) {
                 val k = intDatum(i)
                 val record = singleStringRow("hello_$i")
-                table.rawInsert(k, record)
+                table.rawInsert(null, k, record)
             }
             for (i in 1..rowsCount) {
                 val k = intDatum(i)
                 val record = singleStringRow("hello_$i")
-                table.rawInsert(k, record)
+                table.rawInsert(null, k, record)
             }
             // test select by condition
             for (i in 1..rowsCount) {
                 val k = intDatum(i).toBytes()
-                val records = table.rawFind(GreatThanKeyCondition(k))
+                val records = table.rawFind(null, GreatThanKeyCondition(k))
                 println("records count ${records.size}")
                 assert(records.size == (2 * (rowsCount - i)))
                 if (records.isNotEmpty()) {

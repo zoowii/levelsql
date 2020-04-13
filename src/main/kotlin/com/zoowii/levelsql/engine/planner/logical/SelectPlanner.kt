@@ -34,9 +34,9 @@ class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalP
         }
         val table = sess.db!!.openTable(tblName)
         if (seekedPos == null) {
-            seekedPos = table.rawSeekFirst()
+            seekedPos = table.rawSeekFirst(sess)
         } else {
-            seekedPos = table.rawNextRecord(seekedPos)
+            seekedPos = table.rawNextRecord(sess, seekedPos)
         }
         if (seekedPos == null) {
             // seeked to end
