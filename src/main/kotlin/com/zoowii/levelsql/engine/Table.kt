@@ -156,6 +156,8 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
 
     fun rawInsert(session: DbSession?, key: Datum, record: Row) {
         val nextRowId = nextRowId()
+        session?.getTransaction()?.addInsertRecord(db.dbName, tblName, nextRowId)
+
         primaryIndex.tree.addKeyValue(IndexLeafNodeValue(nextRowId, datumsToIndexKey(key), record.toBytes()))
         // 二级索引也需要插入记录
         for(index in secondaryIndexes) {
@@ -167,13 +169,17 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
             val value = itemRow.toBytes()
             index.tree.addKeyValue(IndexLeafNodeValue(nextRowId, indexKey, value))
         }
-        session?.getTransaction()?.addInsertRecord(db.dbName, nextRowId)
+
     }
 
     fun rawUpdate(session: DbSession?, rowId: RowId, key: Datum, record: Row) {
         val tx = session?.getTransaction()
         val oldValueLeafRecord = if(tx!=null) primaryIndex.tree.findLeafNodeByKeyAndRowId(datumsToIndexKey(key), rowId)?.leafRecord() else null
         val oldRow = if(oldValueLeafRecord!=null) Row().fromBytes(ByteArrayStream(oldValueLeafRecord.value)) else null
+
+        if(tx!=null) {
+            tx.addUpdateRecord(db.dbName, tblName, rowId, oldRow!!)
+        }
 
         try {
             primaryIndex.tree.replaceKeyValue(IndexLeafNodeValue(rowId, datumsToIndexKey(key), record.toBytes()))
@@ -190,9 +196,6 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
             val value = itemRow.toBytes()
             index.tree.replaceKeyValue(IndexLeafNodeValue(rowId, indexKey, value))
         }
-        if(tx!=null) {
-            tx.addUpdateRecord(db.dbName, rowId, oldRow!!)
-        }
     }
 
     fun rawDelete(session: DbSession?, key: Datum, rowId: RowId) {
@@ -203,6 +206,8 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         }
         // TODO: 改成标记row为deleted而不是物理删除
         val record = Row().fromBytes(ByteArrayStream(nodeAndPos.leafRecord().value))
+        session?.getTransaction()?.addDeleteRecord(db.dbName, tblName, rowId, record)
+
         primaryIndex.tree.deleteByKeyAndRowId(indexPrimaryKey, rowId)
         // 二级索引也需要修改记录
         for(index in secondaryIndexes) {
@@ -214,7 +219,6 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
             val value = itemRow.toBytes()
             index.tree.deleteByKeyAndRowId(indexKey, rowId)
         }
-        session?.getTransaction()?.addDeleteRecord(db.dbName, rowId, record)
     }
 
     fun rawGet(session: DbSession?, key: Datum): IndexLeafNodeValue? {

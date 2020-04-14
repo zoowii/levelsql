@@ -24,7 +24,7 @@ class DbSession(val engine: LevelSqlEngine) {
             if(tx != null) {
                 throw TransactionException("tx can't begin more than once in one session")
             }
-            val newTx = UndoTransaction()
+            val newTx = UndoTransaction(engine)
             tx = newTx
             return newTx
         }

@@ -19,9 +19,9 @@ interface Transaction {
      */
     fun rollback()
 
-    fun addInsertRecord(dbName: String, rowId: RowId)
+    fun addInsertRecord(dbName: String, tableName: String, rowId: RowId)
 
-    fun addUpdateRecord(dbName: String, rowId: RowId, oldRowValue: Row)
+    fun addUpdateRecord(dbName: String, tableName: String, rowId: RowId, oldRowValue: Row)
 
-    fun addDeleteRecord(dbName: String, rowId: RowId, oldRowValue: Row)
+    fun addDeleteRecord(dbName: String, tableName: String, rowId: RowId, oldRowValue: Row)
 }
