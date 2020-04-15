@@ -17,4 +17,5 @@ target
 /engine_tests_local
 /planner_tests_local
 /mysql_tests_local
+/tx_tests_local
 /data_dir

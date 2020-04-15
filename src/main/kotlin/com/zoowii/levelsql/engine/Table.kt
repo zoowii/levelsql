@@ -154,11 +154,11 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         return result
     }
 
-    fun rawInsert(session: DbSession?, key: Datum, record: Row) {
-        val nextRowId = nextRowId()
-        session?.getTransaction()?.addInsertRecord(db.dbName, tblName, nextRowId)
+    fun rawInsert(session: DbSession?, key: Datum, record: Row, rowId: RowId?=null) {
+        val recordRowId = rowId ?: nextRowId()
+        session?.getTransaction()?.addInsertRecord(db.dbName, tblName, key, recordRowId)
 
-        primaryIndex.tree.addKeyValue(IndexLeafNodeValue(nextRowId, datumsToIndexKey(key), record.toBytes()))
+        primaryIndex.tree.addKeyValue(IndexLeafNodeValue(recordRowId, datumsToIndexKey(key), record.toBytes()))
         // 二级索引也需要插入记录
         for(index in secondaryIndexes) {
             val indexKeyDatums = mapRecordColumns(record, index.columns)
@@ -167,7 +167,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
             val itemRow = Row()
             itemRow.data = listOf(key) // 这里是存储主键的原值，当需要回表的时候在转成Datum后再转成IndexKey去做回表查询
             val value = itemRow.toBytes()
-            index.tree.addKeyValue(IndexLeafNodeValue(nextRowId, indexKey, value))
+            index.tree.addKeyValue(IndexLeafNodeValue(recordRowId, indexKey, value))
         }
 
     }
@@ -177,9 +177,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         val oldValueLeafRecord = if(tx!=null) primaryIndex.tree.findLeafNodeByKeyAndRowId(datumsToIndexKey(key), rowId)?.leafRecord() else null
         val oldRow = if(oldValueLeafRecord!=null) Row().fromBytes(ByteArrayStream(oldValueLeafRecord.value)) else null
 
-        if(tx!=null) {
-            tx.addUpdateRecord(db.dbName, tblName, rowId, oldRow!!)
-        }
+        tx?.addUpdateRecord(db.dbName, tblName, rowId, oldRow!!)
 
         try {
             primaryIndex.tree.replaceKeyValue(IndexLeafNodeValue(rowId, datumsToIndexKey(key), record.toBytes()))

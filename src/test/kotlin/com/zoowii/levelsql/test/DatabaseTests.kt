@@ -38,9 +38,9 @@ class DatabaseTests {
     @Test fun testSaveEngine() {
         val sess = TestSession("testSaveEngine")
         cleanAndInitStore(sess)
-        val store = sess.store
+        val store = sess.store ?: return
 
-        val engine = LevelSqlEngine(store!!)
+        val engine = LevelSqlEngine(store)
 
         val db = createTestDatabase(sess, engine)
 

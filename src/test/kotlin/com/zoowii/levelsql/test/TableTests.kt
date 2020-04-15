@@ -43,10 +43,8 @@ class TableTests {
     }
 
     // @After
-    fun closeDb(db: Database) {
-        if(db!=null) {
-            db.store.close()
-        }
+    fun closeDb(db: Database?) {
+        db?.store?.close()
     }
 
     private val userTableName = "user"

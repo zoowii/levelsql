@@ -10,18 +10,17 @@ simple relational sql database stored on everything(disk file, leveldb, redis, o
 # features
 * mysql protocol(兼容MySQL网络协议，支持使用MySQL客户端驱动连接使用)
 * B+ tree based index (基于B+树的索引)
-* add/update/delete/seek-by-condition(增删改查和按照条件进行索引查找数据)
 * SQL Syntax(带有高效的SQL接口，可以通过SQL执行CRUD，以及支持索引查找，join操作，排序，分组，聚合函数等语法)
-* local file store (直接磁盘文件做存储层)
-* KV db store (在KV数据库比如leveldb/redis之上作为存储层)
-* OSS store(把对象存储作为存储层)
+* transaction(支持事务)
 * using index when available(SQL执行时如果发现可以用索引优化检索的时候优化执行计划)
 * logic planner and optimizer(SQL执行计划和执行计划的优化器)
 * table cluster index and multi-columns secondary index(支持聚集索引和二级索引，联合索引)
+* local file store (直接磁盘文件做存储层)
+* KV db store (在KV数据库比如leveldb/redis之上作为存储层)
+* OSS store(把对象存储作为存储层)
 
 # TODO
 * performance test
-* transaction
 * physical optimizer
 * skiplist based index in memory
 * LSM based store and index
@@ -35,6 +34,7 @@ simple relational sql database stored on everything(disk file, leveldb, redis, o
 * logical planners and planner builder(将SQL抽象语法树转换成一个执行计划树)
 * planner optimizer(执行计划的优化器，比如将表检索planner转换成索引查找planner等优化)
 * planner executor(执行计划的执行器)
+* transaction(事务)
 
 # Example
 
