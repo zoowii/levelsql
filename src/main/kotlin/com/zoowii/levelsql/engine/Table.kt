@@ -62,8 +62,6 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         }
     }
 
-    // TODO: table要支持多个索引，每个索引可能使用多个字段
-
     // 聚集索引
     private val primaryIndex = Index(this, "${tblName}_primary_${primaryKey}", listOf(primaryKey), true, true)
     // 二级索引
@@ -136,6 +134,8 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         primaryIndex.tree.initTree()
     }
 
+    // TODO: table中涉及到的rows需要记录rowId => primary key的映射到内存，方便快速根据rowId找到最新row数据
+
     // 把一行记录(按table的columns顺序提供的)中{selectColumns}各列的值筛选出来返回
     private fun mapRecordColumns(record: Row, selectColumns: List<String>): List<Datum> {
         val selectColumnsIndexes = selectColumns.map { selectCol ->
@@ -156,7 +156,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
 
     fun rawInsert(session: DbSession?, key: Datum, record: Row, rowId: RowId?=null) {
         val recordRowId = rowId ?: nextRowId()
-        session?.getTransaction()?.addInsertRecord(db.dbName, tblName, key, recordRowId)
+        session?.getTransaction()?.addInsertRecord(db.dbName, this, key, recordRowId, record)
 
         primaryIndex.tree.addKeyValue(IndexLeafNodeValue(recordRowId, datumsToIndexKey(key), record.toBytes()))
         // 二级索引也需要插入记录
@@ -177,7 +177,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         val oldValueLeafRecord = if(tx!=null) primaryIndex.tree.findLeafNodeByKeyAndRowId(datumsToIndexKey(key), rowId)?.leafRecord() else null
         val oldRow = if(oldValueLeafRecord!=null) Row().fromBytes(ByteArrayStream(oldValueLeafRecord.value)) else null
 
-        tx?.addUpdateRecord(db.dbName, tblName, rowId, oldRow!!)
+        tx?.addUpdateRecord(db.dbName, this, rowId, oldRow!!, record)
 
         try {
             primaryIndex.tree.replaceKeyValue(IndexLeafNodeValue(rowId, datumsToIndexKey(key), record.toBytes()))
@@ -204,7 +204,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         }
         // TODO: 改成标记row为deleted而不是物理删除
         val record = Row().fromBytes(ByteArrayStream(nodeAndPos.leafRecord().value))
-        session?.getTransaction()?.addDeleteRecord(db.dbName, tblName, rowId, record)
+        session?.getTransaction()?.addDeleteRecord(db.dbName, this, rowId, record)
 
         primaryIndex.tree.deleteByKeyAndRowId(indexPrimaryKey, rowId)
         // 二级索引也需要修改记录

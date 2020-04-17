@@ -11,6 +11,15 @@ import java.io.ByteArrayOutputStream
 import java.sql.SQLException
 
 class Row : StoreSerializable<Row> {
+    companion object {
+        // 使用Percolator算法实现分布式事务时，一行数据有可选的两列隐藏列L列和W列，
+        // L列用来加锁startTs+sessionId+optional-primaryRowId，W列记录commitTs
+        // 因为Row记录中只有值没有列信息，但是Table操作Row的时候能知道table中有多少列，
+        // 所以可以给row记录最后增加2列，如果只有L列则是L+W(null),如果只有W列则是L(null)+W
+        const val LockColumnName = "@L"
+        const val lockCommitColumnName = "@W"
+    }
+
     var data = listOf<Datum>()
 
     override fun toString(): String {
@@ -42,6 +51,12 @@ class Row : StoreSerializable<Row> {
             return Datum(DatumTypes.kindNull)
         }
         return data[idx]
+    }
+
+    fun setItemByIndex(index: Int, value: Datum) {
+        val mList = data.toMutableList()
+        mList[index] = value
+        this.data = mList
     }
 
     // 本row是否满足条件表达式{cond}, @param headerNames 是本row各数据对应的header name
