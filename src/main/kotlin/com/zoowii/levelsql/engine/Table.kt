@@ -67,6 +67,26 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
     // 二级索引
     private var secondaryIndexes = listOf<Index>()
 
+    private val rowIdKeyMapping = HashMap<Long, Datum>() // rowId => row key mapping
+
+    private fun addRowIdKeyMapping(rowId: RowId, key: Datum) {
+        // TODO: rowIdKeyMapping 要改成多层树状mapping，事务执行时在下面加一层子mapping，回滚时放弃子层，同一层同时执行的事务都结束时合并上去
+        rowIdKeyMapping[rowId.longValue()] = key
+    }
+
+    fun findRowByRowId(session: DbSession?, rowId: RowId): Row? {
+        val key = rowIdKeyMapping.getOrDefault(rowId.longValue(), null) ?: return null
+        var nodePos = rawGet(session, key)
+        while(nodePos!=null) {
+            val record = nodePos.leafRecord()
+            if(record.rowId == rowId) {
+                return Row().fromBytes(ByteArrayStream(record.value))
+            }
+            nodePos = rawNextRecord(session, nodePos)
+        }
+        return null
+    }
+
     fun containsIndex(indexName: String): Boolean {
         if (primaryIndex.indexName == indexName) {
             return true
@@ -158,6 +178,8 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         val recordRowId = rowId ?: nextRowId()
         session?.getTransaction()?.addInsertRecord(db.dbName, this, key, recordRowId, record)
 
+        addRowIdKeyMapping(recordRowId, key)
+
         primaryIndex.tree.addKeyValue(IndexLeafNodeValue(recordRowId, datumsToIndexKey(key), record.toBytes()))
         // 二级索引也需要插入记录
         for(index in secondaryIndexes) {
@@ -176,6 +198,8 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         val tx = session?.getTransaction()
         val oldValueLeafRecord = if(tx!=null) primaryIndex.tree.findLeafNodeByKeyAndRowId(datumsToIndexKey(key), rowId)?.leafRecord() else null
         val oldRow = if(oldValueLeafRecord!=null) Row().fromBytes(ByteArrayStream(oldValueLeafRecord.value)) else null
+
+        addRowIdKeyMapping(rowId, key)
 
         tx?.addUpdateRecord(db.dbName, this, rowId, oldRow!!, record)
 
@@ -202,6 +226,7 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         if (nodeAndPos == null) {
             throw DbException("record not found for delete")
         }
+        addRowIdKeyMapping(rowId, key)
         // TODO: 改成标记row为deleted而不是物理删除
         val record = Row().fromBytes(ByteArrayStream(nodeAndPos.leafRecord().value))
         session?.getTransaction()?.addDeleteRecord(db.dbName, this, rowId, record)
@@ -219,14 +244,14 @@ class Table(val db: Database, val tblName: String, val primaryKey: String, val c
         }
     }
 
-    fun rawGet(session: DbSession?, key: Datum): IndexLeafNodeValue? {
+    fun rawGet(session: DbSession?, key: Datum): IndexNodeValue? {
         val indexPrimaryKey = datumsToIndexKey(key)
         val (nodeAndPos, isNewNode) = primaryIndex.tree.findIndex(indexPrimaryKey, false)
         if (nodeAndPos == null || isNewNode) {
             return null
         }
         // 调用者在rawGet后要循环检查返回的值是否满足条件（因为有可能是裁减后的key满足条件)，如果不满足就找下一项(如果没结束的话)
-        return nodeAndPos.node.values[nodeAndPos.indexInNode]
+        return nodeAndPos
     }
 
     // 找到表中第一条数据
