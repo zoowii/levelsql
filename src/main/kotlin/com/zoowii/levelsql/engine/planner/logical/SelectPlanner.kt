@@ -4,6 +4,7 @@ import com.zoowii.levelsql.engine.DbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.index.IndexNodeValue
 import com.zoowii.levelsql.engine.planner.LogicalPlanner
+import com.zoowii.levelsql.engine.planner.source.RowWithPosition
 import com.zoowii.levelsql.engine.types.Chunk
 import com.zoowii.levelsql.engine.types.Row
 import com.zoowii.levelsql.engine.utils.ByteArrayStream
@@ -20,7 +21,8 @@ class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalP
         return "select $tblName${childrenToString()}"
     }
 
-    private var seekedPos: IndexNodeValue? = null // 目前已经遍历到的记录的位置
+//    private var seekedPos: IndexNodeValue? = null // 目前已经遍历到的记录的位置
+    private var seekedPos: RowWithPosition? = null // 目前已经遍历到的记录的位置
 
     private var sourceEnd = false
 
@@ -32,12 +34,19 @@ class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalP
             fetchTask.submitSourceEnd()
             return
         }
-        val table = sess.db!!.openTable(tblName)
-        if (seekedPos == null) {
-            seekedPos = table.rawSeekFirst(sess)
+        val engineSource = sess.sqlEngineSource ?: throw SQLException("engineSource not set for sql engine")
+        val tableSource = engineSource.openTable(sess, tblName) ?: throw SQLException("open table $tblName error")
+        if(seekedPos==null) {
+            seekedPos = tableSource.seekFirst(sess)
         } else {
-            seekedPos = table.rawNextRecord(sess, seekedPos)
+            seekedPos = tableSource.seekNextRecord(sess, seekedPos!!)
         }
+//        val table = sess.db!!.openTable(tblName)
+//        if (seekedPos == null) {
+//            seekedPos = table.rawSeekFirst(sess)
+//        } else {
+//            seekedPos = table.rawNextRecord(sess, seekedPos)
+//        }
         if (seekedPos == null) {
             // seeked to end
             log.debug("table $tblName select end")
@@ -45,9 +54,10 @@ class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalP
             fetchTask.submitSourceEnd()
             return
         }
-        val record = seekedPos!!.leafRecord()
-        val row = Row().fromBytes(ByteArrayStream(record.value))
-        log.debug("select planner fetched row: ${row}")
+//        val record = seekedPos!!.leafRecord()
+//        val row = Row().fromBytes(ByteArrayStream(record.value))
+        val row = seekedPos!!.row
+        log.debug("select planner fetched row: $row")
         fetchTask.submitChunk(Chunk().replaceRows(listOf(row)))
     }
 
@@ -62,10 +72,14 @@ class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalP
     }
 
     override fun setSelfOutputNames() {
-        if (sess.db == null) {
-            return
-        }
-        val table = sess.db!!.openTable(tblName)
-        setOutputNames(table.columns.map { it.name })
+        val engineSource = sess.sqlEngineSource ?: return
+        val tableSource = engineSource.openTable(sess, tblName) ?: return
+        val columns = tableSource.getColumns()
+        setOutputNames(columns.map { it.name })
+//        if (sess.db == null) {
+//            return
+//        }
+//        val table = sess.db!!.openTable(tblName)
+//        setOutputNames(table.columns.map { it.name })
     }
 }
