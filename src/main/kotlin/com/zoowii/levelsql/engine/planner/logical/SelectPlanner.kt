@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.planner.logical
 
 import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.IDbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.index.IndexNodeValue
 import com.zoowii.levelsql.engine.planner.LogicalPlanner
@@ -14,7 +15,7 @@ import java.util.concurrent.Future
 
 
 // 从table中检索数据的planner
-class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalPlanner(sess) {
+class SelectPlanner(private val sess: IDbSession, val tblName: String) : LogicalPlanner(sess) {
     private val log = logger()
 
     override fun toString(): String {
@@ -27,14 +28,14 @@ class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalP
     private var sourceEnd = false
 
     override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
-        if (sess.db == null) {
+        if (!sess.verifyDbOpened()) {
             throw SQLException("database not opened. need use one-database")
         }
         if (sourceEnd) {
             fetchTask.submitSourceEnd()
             return
         }
-        val engineSource = sess.sqlEngineSource ?: throw SQLException("engineSource not set for sql engine")
+        val engineSource = sess.getSqlEngineSource() ?: throw SQLException("engineSource not set for sql engine")
         val tableSource = engineSource.openTable(sess, tblName) ?: throw SQLException("open table $tblName error")
         if(seekedPos==null) {
             seekedPos = tableSource.seekFirst(sess)
@@ -56,7 +57,7 @@ class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalP
         }
 //        val record = seekedPos!!.leafRecord()
 //        val row = Row().fromBytes(ByteArrayStream(record.value))
-        val row = seekedPos!!.row
+        val row = seekedPos!!.getRow()
         log.debug("select planner fetched row: $row")
         fetchTask.submitChunk(Chunk().replaceRows(listOf(row)))
     }
@@ -72,7 +73,7 @@ class SelectPlanner(private val sess: DbSession, val tblName: String) : LogicalP
     }
 
     override fun setSelfOutputNames() {
-        val engineSource = sess.sqlEngineSource ?: return
+        val engineSource = sess.getSqlEngineSource() ?: return
         val tableSource = engineSource.openTable(sess, tblName) ?: return
         val columns = tableSource.getColumns()
         setOutputNames(columns.map { it.name })

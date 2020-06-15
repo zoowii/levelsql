@@ -21,7 +21,7 @@ import com.zoowii.levelsql.sql.scanner.TokenTypes.tkNe
 import java.sql.SQLException
 import java.util.concurrent.Future
 
-
+// TODO: 支持多数据源
 // 从索引中检索数据的planner
 class IndexSelectPlanner(private val sess: DbSession, val tblName: String, val indexName: String,
                          val asc: Boolean, val filterCondExpr: Expr) : LogicalPlanner(sess) {

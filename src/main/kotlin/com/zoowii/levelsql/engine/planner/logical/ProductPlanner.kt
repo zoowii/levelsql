@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.planner.logical
 
 import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.IDbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.planner.LogicalPlanner
 import com.zoowii.levelsql.engine.planner.Planner
@@ -10,7 +11,7 @@ import java.util.concurrent.Future
 
 
 // 笛卡尔积的planner
-class ProductPlanner(private val sess: DbSession) : LogicalPlanner(sess) {
+class ProductPlanner(private val sess: IDbSession) : LogicalPlanner(sess) {
     override fun toString(): String {
         return "product${childrenToString()}"
     }

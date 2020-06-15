@@ -3,6 +3,7 @@ package com.zoowii.levelsql.test
 import com.zoowii.levelsql.engine.*
 import com.zoowii.levelsql.engine.store.IStore
 import com.zoowii.levelsql.engine.store.LocalFileStore
+import org.junit.Assert
 import org.junit.Test
 import java.io.File
 
@@ -209,7 +210,13 @@ class PlannerTests {
         val session = engine.createSession()
         session.useDb("test")
         val sql1 = "select sum(age), count(age), max(age), min(age) from employee, person where id > 0 limit 2,2"
-        engine.executeSQL(session, sql1)
+        val sqlResult1 = engine.executeSQL(session, sql1)
+        Assert.assertEquals(sqlResult1.chunk.rows.size, 1)
+        val resultRow1 = sqlResult1.chunk.rows[0]
+        Assert.assertEquals(resultRow1.data[0].intValue, 44L)
+        Assert.assertEquals(resultRow1.data[1].intValue, 2L)
+        Assert.assertEquals(resultRow1.data[2].intValue, 23L)
+        Assert.assertEquals(resultRow1.data[3].intValue, 21L)
         engine.shutdown()
     }
 }

@@ -1,13 +1,13 @@
 package com.zoowii.levelsql.engine.planner.logical
 
-import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.IDbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.planner.LogicalPlanner
 import com.zoowii.levelsql.engine.types.Chunk
 import java.util.concurrent.Future
 
 // use dbName语句的算子
-class UseDbPlanner(private val sess: DbSession, val dbName: String) : LogicalPlanner(sess) {
+class UseDbPlanner(private val sess: IDbSession, val dbName: String) : LogicalPlanner(sess) {
     private var executed = false
 
     override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
@@ -15,7 +15,7 @@ class UseDbPlanner(private val sess: DbSession, val dbName: String) : LogicalPla
             fetchTask.submitSourceEnd()
             return
         }
-        if(!sess.engine.containsDatabase(dbName)) {
+        if(!sess.containsDb(dbName)) {
             fetchTask.submitError("can't find database $dbName")
             return
         }

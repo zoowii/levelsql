@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.planner.logical
 
 import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.IDbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.planner.LogicalPlanner
 import com.zoowii.levelsql.engine.types.Chunk
@@ -9,7 +10,7 @@ import com.zoowii.levelsql.engine.utils.logger
 import java.util.concurrent.Future
 
 // 排序的planner
-class OrderByPlanner(private val sess: DbSession, val column: String, val asc: Boolean) : LogicalPlanner(sess) {
+class OrderByPlanner(private val sess: IDbSession, val column: String, val asc: Boolean) : LogicalPlanner(sess) {
     private val log = logger()
 
     override fun toString(): String {

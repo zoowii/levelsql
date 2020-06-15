@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.planner.logical
 
 import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.IDbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.planner.LogicalPlanner
 import com.zoowii.levelsql.engine.types.Chunk
@@ -13,7 +14,7 @@ import java.util.concurrent.Future
 
 
 // 从输入中投影出部分列的planner
-class ProjectionPlanner(private val sess: DbSession, val columns: List<Expr>) : LogicalPlanner(sess) {
+class ProjectionPlanner(private val sess: IDbSession, val columns: List<Expr>) : LogicalPlanner(sess) {
     override fun toString(): String {
         return "projection ${columns.joinToString(", ")}${childrenToString()}"
     }

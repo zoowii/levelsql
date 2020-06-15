@@ -1,11 +1,17 @@
 package com.zoowii.levelsql.engine
 
 import com.zoowii.levelsql.engine.planner.source.ISqlEngineSource
-import com.zoowii.levelsql.engine.planner.source.LevelSqlEngineSource
+import com.zoowii.levelsql.engine.planner.source.levelsql.LevelSqlEngineSource
 import com.zoowii.levelsql.engine.tx.*
+import java.sql.SQLException
 import java.util.concurrent.atomic.AtomicLong
 
-interface IDbSession {}
+interface IDbSession {
+    fun containsDb(dbName: String): Boolean
+    fun verifyDbOpened(): Boolean
+    fun getSqlEngineSource(): ISqlEngineSource?
+    fun useDb(dbName: String)
+}
 
 // 一次db会话的上下文
 class DbSession(val engine: LevelSqlEngine) : IDbSession {
@@ -16,9 +22,17 @@ class DbSession(val engine: LevelSqlEngine) : IDbSession {
     var db: Database? = null // 会话当前使用的数据库
     private var tx: Transaction? = null
 
-    var sqlEngineSource: ISqlEngineSource? = LevelSqlEngineSource()
+    private var sqlEngineSource: ISqlEngineSource? = LevelSqlEngineSource()
 
-    fun useDb(dbName: String) {
+    override fun getSqlEngineSource(): ISqlEngineSource? {
+        return sqlEngineSource
+    }
+
+    override fun containsDb(dbName: String): Boolean {
+        return engine.containsDatabase(dbName)
+    }
+
+    override fun useDb(dbName: String) {
         db = engine.openDatabase(dbName)
     }
 
@@ -59,5 +73,9 @@ class DbSession(val engine: LevelSqlEngine) : IDbSession {
 
     fun getTransaction(): Transaction? {
         return tx
+    }
+
+    override fun verifyDbOpened(): Boolean {
+        return db != null
     }
 }

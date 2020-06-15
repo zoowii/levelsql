@@ -14,7 +14,7 @@ import com.zoowii.levelsql.engine.utils.logger
 import java.sql.SQLException
 import java.util.concurrent.Future
 
-
+// TODO: 支持多数据源
 // 回表查询。从输入得到一个[primaryKey]的流，然后用主键索引查表并输出
 class IndexSelectByIdPlanner(private val sess: DbSession, val tblName: String) : LogicalPlanner(sess) {
     private val log = logger()

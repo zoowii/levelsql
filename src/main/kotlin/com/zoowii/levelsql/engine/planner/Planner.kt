@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.planner
 
 import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.IDbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.types.Chunk
 import java.lang.Exception
@@ -16,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 // 执行计划中的算子的接口
 interface Planner : Runnable {
     // 本次执行的db session
-    fun getSession(): DbSession
+    fun getSession(): IDbSession
 
     // 输出各列的名称
     fun getOutputNames(): List<String>
@@ -27,7 +28,7 @@ interface Planner : Runnable {
     fun submitFetchTask(): Future<FetchTask>
 }
 
-abstract class LogicalPlanner(private val sess: DbSession) : Planner {
+abstract class LogicalPlanner(private val sess: IDbSession) : Planner {
     var children = mutableListOf<LogicalPlanner>()
     fun setChild(index: Int, planner: LogicalPlanner) {
         children[index] = planner
@@ -46,7 +47,7 @@ abstract class LogicalPlanner(private val sess: DbSession) : Planner {
         outputNames = names
     }
 
-    override fun getSession(): DbSession {
+    override fun getSession(): IDbSession {
         return sess
     }
 

@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.planner.logical
 
 import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.IDbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.planner.LogicalPlanner
 import com.zoowii.levelsql.engine.types.Chunk
@@ -9,7 +10,7 @@ import java.util.concurrent.Future
 
 
 // 限制查询数据行数和偏移量的planner
-class LimitPlanner(private val sess: DbSession, val offset: Long, val limit: Long) : LogicalPlanner(sess) {
+class LimitPlanner(private val sess: IDbSession, val offset: Long, val limit: Long) : LogicalPlanner(sess) {
     override fun toString(): String {
         return "limit $offset, $limit${childrenToString()}"
     }

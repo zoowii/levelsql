@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.planner.logical
 
 import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.IDbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.planner.LogicalPlanner
 import com.zoowii.levelsql.engine.types.Chunk
@@ -14,7 +15,7 @@ import java.util.concurrent.Future
 
 
 // 聚合操作的planner, @param columns 可能是group by中的列，也可能是聚合函数调用比如 count(1), sum(age)等
-class AggregatePlanner(private val sess: DbSession, val columns: List<Expr>) : LogicalPlanner(sess) {
+class AggregatePlanner(private val sess: IDbSession, val columns: List<Expr>) : LogicalPlanner(sess) {
     override fun toString(): String {
         return "aggregate ${columns.joinToString(", ")}${childrenToString()}"
     }
