@@ -4,7 +4,7 @@ import com.zoowii.levelsql.engine.index.IndexNodeValue
 import com.zoowii.levelsql.engine.planner.source.RowWithPosition
 import com.zoowii.levelsql.engine.types.Row
 
-data class LevelSqlRowWithPosition(private val row: Row, val position: IndexNodeValue) : RowWithPosition {
+class LevelSqlRowWithPosition(private val row: Row, val position: IndexNodeValue) : RowWithPosition {
     override fun getRow(): Row {
         return row
     }

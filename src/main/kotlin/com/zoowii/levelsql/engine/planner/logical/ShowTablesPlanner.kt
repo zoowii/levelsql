@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.planner.logical
 
 import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.IDbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.planner.LogicalPlanner
 import com.zoowii.levelsql.engine.types.Chunk
@@ -11,13 +12,14 @@ import java.util.concurrent.Future
 
 
 // 查询数据库中table列表的算子
-class ShowTablesPlanner(private val sess: DbSession) : LogicalPlanner(sess) {
+class ShowTablesPlanner(private val sess: IDbSession) : LogicalPlanner(sess) {
     private var executed = false
     override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
         if(executed) {
             fetchTask.submitSourceEnd()
             return
         }
+        sess as DbSession // TODO
         val db = sess.db
         if(db == null) {
             fetchTask.submitError("please select a db first")

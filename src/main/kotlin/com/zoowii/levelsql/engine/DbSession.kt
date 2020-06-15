@@ -7,6 +7,7 @@ import java.sql.SQLException
 import java.util.concurrent.atomic.AtomicLong
 
 interface IDbSession {
+    val id: Long
     fun containsDb(dbName: String): Boolean
     fun verifyDbOpened(): Boolean
     fun getSqlEngineSource(): ISqlEngineSource?
@@ -18,7 +19,7 @@ class DbSession(val engine: LevelSqlEngine) : IDbSession {
     companion object {
         private val idGen = AtomicLong()
     }
-    val id = idGen.getAndIncrement()
+    override val id = idGen.getAndIncrement()
     var db: Database? = null // 会话当前使用的数据库
     private var tx: Transaction? = null
 

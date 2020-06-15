@@ -19,10 +19,14 @@ class LevelSqlEngine(val store: IStore) {
     private val log = logger()
 
     private var databases = listOf<Database>()
-    private var sessions = ConcurrentHashMap<Long, DbSession>()
+    private var sessions = ConcurrentHashMap<Long, IDbSession>()
 
     // 从store中加载元信息
     fun loadMeta() {
+        // TODO: 对于类似CSV的数据源，loadMeta过程不一样
+        if(store is DummyStore) {
+            return
+        }
         val metaBytes = store.get(metaStoreKey())
                 ?: throw SQLException("load engine error")
         metaFromBytes(this, metaBytes)
@@ -94,6 +98,10 @@ class LevelSqlEngine(val store: IStore) {
         return sess
     }
 
+    fun bindExternalSession(sess: IDbSession) {
+        sessions[sess.id] = sess
+    }
+
     val dbExecutor = DbExecutor()
 
     fun shutdown() {
@@ -101,7 +109,7 @@ class LevelSqlEngine(val store: IStore) {
     }
 
     // 解析执行SQL语句的API
-    fun executeSQL(session: DbSession, sqls: String): SqlResultSet {
+    fun executeSQL(session: IDbSession, sqls: String): SqlResultSet {
         if (session != sessions.getOrDefault(session.id, null)) {
             throw SQLException("not active db session")
         }

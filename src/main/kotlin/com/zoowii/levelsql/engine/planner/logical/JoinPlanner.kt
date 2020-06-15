@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.planner.logical
 
 import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.IDbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.planner.LogicalPlanner
 import com.zoowii.levelsql.sql.ast.JoinSubQuery
@@ -8,7 +9,7 @@ import java.util.concurrent.Future
 
 
 // join table操作的planner
-class JoinPlanner(private val sess: DbSession, val joinConditions: List<JoinSubQuery>) : LogicalPlanner(sess) {
+class JoinPlanner(private val sess: IDbSession, val joinConditions: List<JoinSubQuery>) : LogicalPlanner(sess) {
     override fun toString(): String {
         return "${joinConditions.joinToString(", ")}${childrenToString()}"
     }

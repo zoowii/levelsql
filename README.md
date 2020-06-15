@@ -18,6 +18,7 @@ simple relational sql database stored on everything(disk file, leveldb, redis, o
 * local file store (直接磁盘文件做存储层)
 * KV db store (在KV数据库比如leveldb/redis之上作为存储层)
 * OSS store(把对象存储作为存储层)
+* sql engine based on CSV(SQL引擎直接查询CSV文件)
 
 # TODO
 * performance test

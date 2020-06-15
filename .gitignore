@@ -19,3 +19,4 @@ target
 /mysql_tests_local
 /tx_tests_local
 /data_dir
+/csv_test_files

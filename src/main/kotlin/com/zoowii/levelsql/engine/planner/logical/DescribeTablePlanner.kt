@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.planner.logical
 
 import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.IDbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.planner.LogicalPlanner
 import com.zoowii.levelsql.engine.types.Chunk
@@ -9,7 +10,7 @@ import com.zoowii.levelsql.engine.types.DatumTypes
 import com.zoowii.levelsql.engine.types.Row
 import java.util.concurrent.Future
 
-class DescribeTablePlanner(private val sess: DbSession, val tblName: String) : LogicalPlanner(sess) {
+class DescribeTablePlanner(private val sess: IDbSession, val tblName: String) : LogicalPlanner(sess) {
     private var executed = false
 
     override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
@@ -17,6 +18,7 @@ class DescribeTablePlanner(private val sess: DbSession, val tblName: String) : L
             fetchTask.submitSourceEnd()
             return
         }
+        sess as DbSession // TODO
         val db = sess.db
         if(db == null) {
             executed = true

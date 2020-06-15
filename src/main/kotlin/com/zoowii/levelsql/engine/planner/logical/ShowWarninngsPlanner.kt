@@ -1,6 +1,7 @@
 package com.zoowii.levelsql.engine.planner.logical
 
 import com.zoowii.levelsql.engine.DbSession
+import com.zoowii.levelsql.engine.IDbSession
 import com.zoowii.levelsql.engine.executor.FetchTask
 import com.zoowii.levelsql.engine.planner.LogicalPlanner
 import com.zoowii.levelsql.engine.types.Chunk
@@ -10,7 +11,7 @@ import com.zoowii.levelsql.engine.types.Row
 import java.util.concurrent.Future
 
 // show warnings语句的算子
-class ShowWarningsPlanner(private val sess: DbSession) : LogicalPlanner(sess)  {
+class ShowWarningsPlanner(private val sess: IDbSession) : LogicalPlanner(sess)  {
     private var executed = false
     override fun beforeChildrenTasksSubmit(fetchTask: FetchTask) {
         if(executed) {

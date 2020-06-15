@@ -8,7 +8,7 @@ import java.sql.SQLException
 
 // 把SQL AST转成planner树
 object PlannerBuilder {
-    fun sqlNodeToPlanner(session: DbSession, stmt: Node): LogicalPlanner {
+    fun sqlNodeToPlanner(session: IDbSession, stmt: Node): LogicalPlanner {
         when (stmt.javaClass) {
             SelectStatement::class.java -> {
                 /**
@@ -110,14 +110,17 @@ object PlannerBuilder {
             }
             InsertStatement::class.java -> {
                 stmt as InsertStatement
+                session as DbSession
                 return InsertPlanner(session, stmt.tblName, stmt.columns, stmt.rows)
             }
             CreateDatabaseStatement::class.java -> {
                 stmt as CreateDatabaseStatement
+                session as DbSession
                 return CreateDatabasePlanner(session, stmt.dbName)
             }
             CreateTableStatement::class.java -> {
                 stmt as CreateTableStatement
+                session as DbSession
                 // TODO: 暂时只用id这个字段作为主键
                 val primaryKeyColumn = stmt.columns.firstOrNull { it.name == "id" }
                         ?: throw SQLException("no primary key provided")
@@ -139,11 +142,13 @@ object PlannerBuilder {
             }
             CreateIndexStatement::class.java -> {
                 stmt as CreateIndexStatement
+                session as DbSession
                 val unique = false // 当前索引都按非unique索引处理
                 return CreateIndexPlanner(session, stmt.indexName, stmt.tblName, stmt.columns, unique)
             }
             SetStatement::class.java -> {
                 stmt as SetStatement
+                session as DbSession
                 return SetDbParamPlanner(session, stmt.paramName, stmt.expr)
             }
             UseStatement::class.java -> {
@@ -171,14 +176,17 @@ object PlannerBuilder {
             }
             StartTransactionStatement::class.java -> {
                 stmt as StartTransactionStatement
+                session as DbSession
                 return StartTransactionPlanner(session)
             }
             CommitStatement::class.java -> {
                 stmt as CommitStatement
+                session as DbSession
                 return CommitPlanner(session)
             }
             RollbackStatement::class.java -> {
                 stmt as RollbackStatement
+                session as DbSession
                 return RollbackPlanner(session)
             }
             // TODO: 其他SQL AST节点类型，比如 DeleteStatement
@@ -188,12 +196,12 @@ object PlannerBuilder {
         }
     }
 
-    fun afterPlannerOptimised(session: DbSession, planner: LogicalPlanner) {
+    fun afterPlannerOptimised(session: IDbSession, planner: LogicalPlanner) {
         planner.setTreeOutputNames()
     }
 
     // 对逻辑计划进行优化
-    fun optimiseLogicalPlanner(session: DbSession, planner: LogicalPlanner): LogicalPlanner {
+    fun optimiseLogicalPlanner(session: IDbSession, planner: LogicalPlanner): LogicalPlanner {
         // TODO
         // TODO: 对应filter条件能用索引的，用IndexSelectPlanner修改下层的select planner
 
@@ -210,6 +218,9 @@ object PlannerBuilder {
                 planner as FilterPlanner
                 // 获取filter planner用到的所有table.column
                 val filterColumns = planner.cond.usingColumns()
+                if(session !is DbSession) {
+                    return onlyOptimiseChildren()
+                }
                 val db = session.db ?: throw SQLException("please use one database first")
                 if (planner.children.size == 1) {
                     // 为简化实现，暂时只对只检索一个表的情况做索引优化

@@ -4,7 +4,6 @@ import com.zoowii.levelsql.engine.DbSession
 import com.zoowii.levelsql.engine.IDbSession
 import com.zoowii.levelsql.engine.planner.source.ISqlEngineSource
 import com.zoowii.levelsql.engine.planner.source.ISqlTableSource
-import java.sql.SQLException
 
 class LevelSqlEngineSource : ISqlEngineSource {
 
