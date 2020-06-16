@@ -1,9 +1,6 @@
 package com.zoowii.levelsql.engine.planner.source.csv
 
-import com.zoowii.levelsql.engine.ColumnType
-import com.zoowii.levelsql.engine.IDbSession
-import com.zoowii.levelsql.engine.TableColumnDefinition
-import com.zoowii.levelsql.engine.TextColumnType
+import com.zoowii.levelsql.engine.*
 import com.zoowii.levelsql.engine.planner.source.ISqlTableSource
 import com.zoowii.levelsql.engine.planner.source.RowWithPosition
 import com.zoowii.levelsql.engine.types.Datum
@@ -12,56 +9,70 @@ import com.zoowii.levelsql.engine.types.DatumTypes
 import com.zoowii.levelsql.engine.types.Row
 import java.sql.SQLException
 
-class CsvSqlTableSource(val tblName: String, val headers: List<String>) : ISqlTableSource {
+class CsvSqlTableSource(val tableDefinition: CsvTableDefinition) : ISqlTableSource {
 
     override fun seekFirst(sess: IDbSession): RowWithPosition? {
         sess as CsvDbSession
-        val csvFile = sess.csvFile
-        if(sess.offset != 0L) {
+        val csvFileStream = sess.getCsvFileOrOpen(tableDefinition.csvFilepath)
+        val csvFile = csvFileStream.csvFile
+        if (csvFileStream.offset != 0L) {
             csvFile.seek(0)
-            sess.offset = 0
+            csvFileStream.offset = 0
         }
         val fileLen = csvFile.length()
-        if(sess.offset >= fileLen) {
+        if (csvFileStream.offset >= fileLen) {
             return null
         }
         val line = csvFile.readLine()
-        if(line.isEmpty()) {
+        if (line.isEmpty()) {
             return null
         }
-        val row = Row()
-        row.data = line.split(",").map { Datum(DatumTypes.kindString, stringValue = it) }
-        if(row.data.size != headers.size) {
-            throw SQLException("row $line columns count not match headers")
-        }
-        return CsvRowWithPosition(row, sess.offset)
+        val row = lineToRow(line)
+        return CsvRowWithPosition(row, csvFileStream.offset)
     }
 
     override fun seekNextRecord(sess: IDbSession, currentPos: RowWithPosition): RowWithPosition? {
         sess as CsvDbSession
         currentPos as CsvRowWithPosition
-        val csvFile = sess.csvFile
-        if(sess.offset != currentPos.offset) {
+        val csvFileStream = sess.getCsvFileOrOpen(tableDefinition.csvFilepath)
+        val csvFile = csvFileStream.csvFile
+        if (csvFileStream.offset != currentPos.offset) {
             csvFile.seek(currentPos.offset)
-            sess.offset = currentPos.offset
+            csvFileStream.offset = currentPos.offset
         }
         val fileLen = csvFile.length()
-        if(sess.offset >= fileLen) {
+        if (csvFileStream.offset >= fileLen) {
             return null
         }
         val line = csvFile.readLine()
-        if(line.isNullOrBlank()) {
+        if (line.isNullOrBlank()) {
             return null
         }
+        val row = lineToRow(line)
+        return CsvRowWithPosition(row, csvFileStream.offset)
+    }
+
+    private fun lineToRow(line: String): Row {
         val row = Row()
-        row.data = line.split(",").map { Datum(DatumTypes.kindString, stringValue = it) }
-        if(row.data.size != headers.size) {
+        val columns = tableDefinition.columns
+        val splited = line.split(",")
+        if (splited.size != columns.size) {
             throw SQLException("row $line columns count not match headers")
         }
-        return CsvRowWithPosition(row, sess.offset)
+        row.data = splited.mapIndexed { index, str ->
+            val column = columns[index]
+            when (column.columnType) {
+                is TextColumnType -> Datum(DatumTypes.kindText, stringValue = str)
+                is VarCharColumnType -> Datum(DatumTypes.kindString, stringValue = str)
+                is IntColumnType -> Datum(DatumTypes.kindInt64, intValue = str.toLong())
+                is BoolColumnType -> Datum(DatumTypes.kindBool, boolValue = str.toBoolean())
+                else -> throw SQLException("not supported column type $column")
+            }
+        }
+        return row
     }
 
     override fun getColumns(): List<TableColumnDefinition> {
-        return headers.map { TableColumnDefinition(it, TextColumnType(), true) }
+        return tableDefinition.columns.map { TableColumnDefinition(it.name, it.columnType, true) }
     }
 }

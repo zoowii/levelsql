@@ -7,24 +7,33 @@ import java.io.RandomAccessFile
 import java.sql.SQLException
 import java.util.concurrent.atomic.AtomicLong
 
-// TODO: csv headers中设置各列的类型
-class CsvDbSession(val dbName: String, val tblName: String, val headers: List<String>, val csvFilepath: String) : IDbSession {
+data class CsvFileStream(val filepath: String, var offset: Long = 0) {
+    val csvFile = RandomAccessFile(filepath, "r")
+}
+
+class CsvDbSession(val databaseDefinition: CsvDatabaseDefinition) : IDbSession {
     companion object {
         private val idGen = AtomicLong()
     }
+
     override val id = idGen.getAndIncrement()
 
     private var sqlEngineSource: ISqlEngineSource = CsvSqlEngineSource()
 
-    val csvFile = RandomAccessFile(csvFilepath, "r")
-    var offset: Long = 0
+    val dbFiles = mutableMapOf<String, CsvFileStream>() // filepath => CsvFileStream
+
+    fun getCsvFileOrOpen(filepath: String): CsvFileStream {
+        return dbFiles.getOrPut(filepath, {
+            CsvFileStream(filepath)
+        })
+    }
 
     override fun containsDb(dbName: String): Boolean {
-        return dbName == dbName
+        return dbName == databaseDefinition.dbName
     }
 
     override fun verifyDbOpened(): Boolean {
-        return File(csvFilepath).exists()
+        return true
     }
 
     override fun getSqlEngineSource(): ISqlEngineSource? {
@@ -32,7 +41,7 @@ class CsvDbSession(val dbName: String, val tblName: String, val headers: List<St
     }
 
     override fun useDb(toUseDbName: String) {
-        if(dbName != toUseDbName) {
+        if (databaseDefinition.dbName != toUseDbName) {
             throw SQLException("db name $toUseDbName not exists")
         }
     }
