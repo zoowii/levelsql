@@ -1,18 +1,13 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     java
-    kotlin("jvm") version "1.3.72"
+    kotlin("jvm")
     maven
 }
 
-group = "com.zoowii"
-version = "1.0.0-dev"
+val parentVersion = "1.0.0-dev"
 
-repositories {
-    mavenLocal()
-    mavenCentral()
-}
+group = "com.zoowii"
+version = parentVersion
 
 val logbackVersion = "1.3.0-alpha5"
 
@@ -20,6 +15,11 @@ tasks.withType<Test> {
     this.testLogging {
         this.showStandardStreams = true
     }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
 }
 
 dependencies {
@@ -43,12 +43,16 @@ dependencies {
 
     // mysql
     testCompile("mysql", "mysql-connector-java", "8.0.19")
-
 }
 
 configure<JavaPluginConvention> {
     sourceCompatibility = JavaVersion.VERSION_1_8
 }
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+tasks {
+    compileKotlin {
+        kotlinOptions.jvmTarget = "1.8"
+    }
+    compileTestKotlin {
+        kotlinOptions.jvmTarget = "1.8"
+    }
 }

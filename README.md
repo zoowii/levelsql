@@ -19,6 +19,7 @@ simple relational sql database stored on everything(disk file, leveldb, redis, o
 * KV db store (在KV数据库比如leveldb/redis之上作为存储层)
 * OSS store(把对象存储作为存储层)
 * sql engine based on CSV(SQL引擎直接查询CSV文件)
+* sql engine based on OSS(SQL引擎直接查询对象存储OSS服务中的多个文件(比如多个原始数据文件直接作为一个表查询))
 
 # TODO
 * performance test

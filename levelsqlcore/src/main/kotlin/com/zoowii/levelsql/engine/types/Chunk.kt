@@ -10,6 +10,10 @@ class Chunk() {
         return this
     }
 
+    override fun toString(): String {
+        return "Chunk(rows=$rows)"
+    }
+
     companion object {
         fun mergeChunks(list: List<Chunk>): Chunk {
             val result = Chunk()
@@ -25,4 +29,6 @@ class Chunk() {
             return Chunk().replaceRows(listOf(row))
         }
     }
+
+
 }
