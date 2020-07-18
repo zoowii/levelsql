@@ -1,0 +1,14 @@
+vendor_id,rate_code,passenger_count,trip_time_in_secs,trip_distance,payment_type,fare_amount
+CMT,1,1,369,1,CRD,6
+CMT,2,3,3504,18.9,CRD,52
+CMT,1,1,422,1,CRD,7
+CMT,1,1,578,1.5,CRD,8.5
+CMT,1,1,999,2.1,CSH,11.5
+CMT,1,1,188,0.7,CSH,4.5
+CMT,1,1,307,0.6,CSH,5
+CMT,1,1,500,1.2,CSH,7.5
+CMT,1,1,1102,1.3,CSH,12.5
+CMT,1,2,1794,6.9,CRD,25.5
+VTS,1,1,300,0.72,CSH,5
+VTS,1,1,540,1.15,CSH,7
+VTS,1,2,1200,5.09,CSH,19.5

@@ -1,0 +1,14 @@
+vendor_id,rate_code,passenger_count,trip_time_in_secs,trip_distance,payment_type,fare_amount
+VTS,1,6,240,1.03,CSH,5.5
+VTS,1,6,600,1.53,CRD,8.5
+VTS,1,6,1140,4.28,CRD,17.5
+VTS,1,1,240,1.02,CSH,5.5
+VTS,1,1,480,2.66,CRD,10
+VTS,1,1,600,1.63,CSH,9
+VTS,1,1,540,2.25,CRD,9.5
+VTS,1,1,960,3.58,CRD,14
+VTS,1,1,360,0.93,CRD,6.5
+VTS,1,1,480,0.97,CRD,7
+VTS,1,1,480,1.27,CRD,7
+VTS,1,1,480,2.03,CSH,8.5
+VTS,1,1,240,0.78,CRD,5

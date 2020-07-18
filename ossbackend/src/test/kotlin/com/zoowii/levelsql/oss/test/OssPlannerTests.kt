@@ -30,7 +30,7 @@ class OssPlannerTests {
             if (type == OssFileType.Meta) {
                 "${tableName}/meta.json"
             } else {
-                "${tableName}/${tableName}${seq.toString().padStart(2, '0')}.csv"
+                "${tableName}/small${tableName}${seq.toString().padStart(2, '0')}.csv"
             }
         }
         val ossDbBaseDefinition = OssDbBaseDefinition(baseOssUrl,
@@ -53,8 +53,8 @@ class OssPlannerTests {
         val session = OssDbSession(ossDb)
         engine.bindExternalSession(session)
         session.useDb("test")
-//        val sql1 = "select * from taxi limit 10"
-        val sql1 = "select count(*) from taxi"
+//        val sql1 = "select * from taxi limit 100"
+        val sql1 = "select count(vendor_id) from taxi"
         val result = engine.executeSQL(session, sql1)
         log.info("sql result: \n{}", result)
         engine.shutdown()

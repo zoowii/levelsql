@@ -40,6 +40,7 @@ class OssSqlTableSource(val tableDefinition: OssTableDefinition) : ISqlTableSour
             }
         }
         val line = ossStream.readLine()
+        ossFileStream.offset = ossStream.offset()
         if (line.isNullOrEmpty()) {
             return null
         }
@@ -66,9 +67,11 @@ class OssSqlTableSource(val tableDefinition: OssTableDefinition) : ISqlTableSour
         if (ossStream.eof(0)) {
             return null
         }
-        if (ossFileStream.offset != currentPos.offset) {
-            ossStream.seek(currentPos.offset)
-            ossFileStream.offset = currentPos.offset
+        if(seq == currentPos.ossFileSeq) {
+            if (ossFileStream.offset != currentPos.offset) {
+                ossStream.seek(currentPos.offset)
+                ossFileStream.offset = currentPos.offset
+            }
         }
         if (ossStream.offset() == 0L && baseDefinition.tableFileIgnoreHeader) {
             ossStream.readLine()
@@ -81,6 +84,7 @@ class OssSqlTableSource(val tableDefinition: OssTableDefinition) : ISqlTableSour
             return null
         }
         val line = ossStream.readLine()
+        ossFileStream.offset = ossStream.offset()
         if (line.isNullOrBlank()) {
             return null
         }
